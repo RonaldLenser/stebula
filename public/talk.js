@@ -40,7 +40,7 @@ async function act(busyText, fn) {
 }
 async function load(checkReturn) {
   try { const j = await api(`state?agent=${S.agent}`); S.mem = j.mem; S.live = j.live; S.error = ''; render();
-    if (checkReturn && j.needsReflection && j.live) await act(`${label(S.agent)} is reviewing your last conversation before you continue.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'return' })).mem; });
+    if (checkReturn && j.needsReflection && j.live) await act(`${label(S.agent)} is reviewing your last conversation before you continue.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'return' })).mem; speakLatest(); });
   } catch (e) { S.error = e.message; render(); }
 }
 async function send() {
@@ -48,7 +48,7 @@ async function send() {
   if (!text || S.busy) return;
   S.pending = text; $('#talkInput').value = '';
   await act(`${label(S.agent)} is thinking, then choosing what to attend to, then answering.`, async () => {
-    try { S.mem = (await api('message', { agent: S.agent, text })).mem; }
+    try { S.mem = (await api('message', { agent: S.agent, text })).mem; speakLatest(); }
     catch (e) { $('#talkInput').value = text; throw e; }
     finally { S.pending = null; }
   });
@@ -61,7 +61,7 @@ $('#audit').onclick = () => act('Running an audit of recent turns.', async () =>
 $('#runTest').onclick = () => act('Self-prediction test: one prediction, then two fresh answers that never see it.', async () => {
   S.mem = (await api('selftest', { agent: S.agent, statement: $('#stmt').value })).mem; $('#stmt').value = '';
 });
-$('#reflectNow').onclick = () => act(`${label(S.agent)} is reviewing the record.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'manual' })).mem; });
+$('#reflectNow').onclick = () => act(`${label(S.agent)} is reviewing the record.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'manual' })).mem; speakLatest(); });
 $('#talkReset').onclick = async () => {
   if (!confirm(`Reset ${label(S.agent)}'s memory? The current file is kept as a backup in data/.`)) return;
   try { S.mem = (await api('reset', { agent: S.agent })).mem; } catch (e) { S.error = e.message; }
@@ -88,6 +88,7 @@ function render() {
   const m = S.mem;
   const off = !S.live || !!S.busy;
   ['#talkSend', '#audit', '#runTest', '#reflectNow'].forEach(s => { $(s).disabled = off; });
+  $('#mic').disabled = (off && !V.listening) || !SR;
   $('#talkAgent').disabled = !!S.busy;
   $('#talkNote').innerHTML = !S.live
     ? '<span class="err">Talk needs a live model. Add ANTHROPIC_API_KEY to .env and restart the server.</span>'
@@ -169,6 +170,76 @@ function render() {
   const flags = [...m.flags].reverse().slice(0, 30).map(f => `<div class="flag ${f.severity}"><b>${esc(f.check)}</b>, turn ${f.turn}: ${esc(f.evidence)}. <span class="note">${esc(f.note)}</span></div>`).join('');
   $('#tChecks').innerHTML = `<p class="note">Per-turn checks are pattern matching. Audits are a separate call to the same model family. Both are fallible; quotes are shown so you can judge.</p>${audits}${flags ? `<div class="block"><h4>Per-turn checks</h4>${flags}</div>` : ''}`;
 }
+
+// ---------- voice ----------
+// Speech in: the browser's speech recognition (Chrome and Edge send audio to their own cloud service).
+// Speech out: the browser's built-in voices. Nothing here is sent to the agent except the final text.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const V = { listening: false, rec: null, base: '' };
+const pref = (k, d) => { try { return JSON.parse(localStorage.getItem(`threshold.${k}`)) ?? d; } catch { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem(`threshold.${k}`, JSON.stringify(v)); } catch { /* storage unavailable */ } };
+$('#readAloud').checked = pref('readAloud', true);
+$('#handsFree').checked = pref('handsFree', false);
+$('#readAloud').onchange = e => { setPref('readAloud', e.target.checked); if (!e.target.checked) speechSynthesis?.cancel(); };
+$('#handsFree').onchange = e => setPref('handsFree', e.target.checked);
+if (!SR) $('#voiceNote').textContent = 'Voice input needs Chrome or Edge. Reading aloud still works.';
+
+function fillVoices() {
+  if (!window.speechSynthesis) { $('#voicePick').disabled = true; return; }
+  const voices = speechSynthesis.getVoices().filter(v => v.lang?.startsWith('en'));
+  const saved = pref('voice', '');
+  $('#voicePick').innerHTML = voices.map(v => `<option value="${esc(v.name)}"${v.name === saved ? ' selected' : ''}>${esc(v.name)}</option>`).join('') || '<option>Default</option>';
+}
+if (window.speechSynthesis) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; }
+$('#voicePick').onchange = e => setPref('voice', e.target.value);
+
+function speak(text) {
+  if (!window.speechSynthesis || !$('#readAloud').checked || !text) { if ($('#handsFree').checked) setTimeout(listen, 400); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = speechSynthesis.getVoices().find(x => x.name === $('#voicePick').value);
+  if (v) u.voice = v;
+  u.rate = 1;
+  u.onend = () => { if ($('#handsFree').checked && !S.busy) listen(); };
+  speechSynthesis.speak(u);
+}
+function speakLatest() {
+  const last = S.mem?.archive?.at(-1);
+  if (last?.role === 'assistant') speak(last.text);
+}
+
+function listen() {
+  if (!SR || V.listening || S.busy || !S.live) return;
+  window.speechSynthesis?.cancel();
+  const rec = new SR();
+  rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+  V.base = $('#talkInput').value.trim();
+  let finalText = '';
+  rec.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+    }
+    $('#talkInput').value = [V.base, finalText, interim].filter(Boolean).join(' ').trim();
+  };
+  rec.onerror = e => {
+    const msg = { 'not-allowed': 'Microphone blocked. Allow it in the address bar, then try again.', 'no-speech': 'Did not hear anything.', network: 'Speech service unreachable. Check your connection.' }[e.error] || `Voice input error: ${e.error}`;
+    $('#voiceNote').textContent = msg;
+  };
+  rec.onend = () => {
+    V.listening = false; V.rec = null; micState();
+    if (finalText.trim()) send();
+  };
+  V.rec = rec; V.listening = true; micState(); $('#voiceNote').textContent = 'Listening. Pause when you are done.';
+  rec.start();
+}
+function stopListening() { V.rec?.stop(); }
+function micState() {
+  $('#mic').setAttribute('aria-pressed', String(V.listening));
+  $('#mic').textContent = V.listening ? 'Listening' : 'Speak';
+  if (!V.listening && $('#voiceNote').textContent.startsWith('Listening')) $('#voiceNote').textContent = '';
+}
+$('#mic').onclick = () => (V.listening ? stopListening() : listen());
 
 function scorecard() {
   const n = s => INDICATORS.filter(i => i.status === s).length;

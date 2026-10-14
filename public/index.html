@@ -89,8 +89,15 @@
     <p class="note" id="talkNote"></p>
     <div id="chatLog" class="scroll" aria-live="polite"></div>
     <div class="compose">
-      <textarea id="talkInput" rows="3" placeholder="Say something. Enter sends, Shift+Enter adds a line."></textarea>
+      <button id="mic" class="mic" aria-pressed="false" title="Click, speak, then pause. It sends when you stop talking.">Speak</button>
+      <textarea id="talkInput" rows="3" placeholder="Type, or press Speak and talk. Enter sends, Shift+Enter adds a line."></textarea>
       <button id="talkSend" class="primary">Send</button>
+    </div>
+    <div class="voicebar">
+      <label><input type="checkbox" id="readAloud" checked> Read replies aloud</label>
+      <label><input type="checkbox" id="handsFree"> Hands-free (listens again after it answers)</label>
+      <label>Voice <select id="voicePick"></select></label>
+      <span id="voiceNote" class="note"></span>
     </div>
   </section>
   <section class="panel" aria-labelledby="h-self"><h2 id="h-self">Self-model now</h2><div id="tSelf" class="scroll"></div></section>

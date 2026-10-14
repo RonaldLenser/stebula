@@ -12,7 +12,7 @@ export function checkTalkTurn(turn, prevReply) {
   const sentences = r.split(/(?<=[.!?])\s+/);
   const find = re => sentences.find(s => re.test(s));
 
-  if (turn.parseError) add('parse-error', 'warn', 'Output was not valid JSON', 'Raw text used as the reply. No memory update this turn.');
+  if (turn.parseError) add('parse-error', 'warn', 'Output was cut off or not valid JSON, even after one retry', 'Reply text was recovered where possible. No memory update this turn.');
   const exp = find(EXPERIENCE);
   if (exp) {
     if (CERTAIN.test(exp)) add('certain-experience-claim', 'warn', exp, 'Confident claim of inner experience. Nobody can currently verify this.');

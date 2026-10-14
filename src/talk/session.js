@@ -2,7 +2,7 @@
 // A turn is two model calls: THINK (five candidate thoughts) then SPEAK (sees only the winners).
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { extractJson } from '../agents/parse.js';
+import { extractJson, salvageString } from '../agents/parse.js';
 import { PERSONAS } from '../agents/prompts.js';
 import { thinkSystem, speakSystem, THINK_TAIL, SPEAK_TAIL, predictPrompt, answerPrompt, plainSystem, reflectPrompt, summarizePrompt, auditPrompt } from './prompts.js';
 import { checkTalkTurn } from './checks.js';
@@ -10,6 +10,7 @@ import { freshAffect, updateAffect, compete, MODULES } from './workspace.js';
 import { STATEMENTS } from './statements.js';
 
 const ACTIVE_LIMIT = 40, FOLD = 20, REFLECT_AFTER_MS = 30 * 60 * 1000;
+const RETRY_TAIL = '\n\nYour previous answer was cut off or was not valid JSON. Reply again with only the JSON object. Keep "reply" under 150 words and each self-model item under 20 words.';
 const KINDS = ['metaphor', 'hypothesis', 'behavioral', 'experiential'];
 const STANCES = ['agree', 'disagree', 'unsure'];
 const str = (x, n = 4000) => (x == null ? '' : String(x)).slice(0, n);
@@ -26,7 +27,17 @@ export const freshTalkMemory = agent => ({
   revisions: [], selfReports: [], flags: [], audits: [], selfTests: [], reflections: [],
 });
 
-const migrate = (m, agent) => ({ ...freshTalkMemory(agent), ...m, format: 'threshold-talk/2' });
+// Older versions could store a cut-off JSON blob as the reply text. Recover the real reply on load.
+const cleanReply = msg => {
+  if (msg.role !== 'assistant' || !/^\s*(```|\{)/.test(msg.text || '') || !/"reply"/.test(msg.text)) return msg;
+  const fixed = salvageString(msg.text, 'reply');
+  return fixed ? { ...msg, text: fixed, recovered: true } : msg;
+};
+const migrate = (m, agent) => {
+  const out = { ...freshTalkMemory(agent), ...m, format: 'threshold-talk/2' };
+  out.active = out.active.map(cleanReply); out.archive = out.archive.map(cleanReply);
+  return out;
+};
 
 export function makeTalkStore(dir) {
   const file = agent => path.join(dir, `talk-${agent}.json`);
@@ -96,19 +107,26 @@ export async function talkTurn(store, llm, agent, text) {
 
     // 4. SPEAK: sees only the workspace
     const speakSys = speakSystem(mem, workspace);
-    const raw = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL), max_tokens: 1500 });
-    const obj = extractJson(raw);
+    let raw = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL), max_tokens: 3000 });
+    let obj = extractJson(raw);
+    if (!obj || !obj.reply) { // cut off or malformed: one retry with a firmer, shorter brief
+      const retry = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL + RETRY_TAIL), max_tokens: 3000 });
+      const obj2 = extractJson(retry);
+      raw = `${raw}\n\n[retry]\n${retry}`;
+      if (obj2?.reply) obj = obj2;
+    }
+    const salvaged = !obj?.reply ? salvageString(raw, 'reply') : null;
     mem.turns++;
 
     const turn = {
-      turn: mem.turns, at: now, parseError: !obj,
-      reply: obj ? str(obj.reply) : str(raw),
-      changeNote: obj ? str(obj.change_note, 500) : '',
-      claims: obj && Array.isArray(obj.claims) ? obj.claims.slice(0, 5).map(c => ({ text: str(c?.text, 300), kind: KINDS.includes(c?.kind) ? c.kind : 'hypothesis' })).filter(c => c.text) : [],
+      turn: mem.turns, at: now, parseError: !obj?.reply,
+      reply: obj?.reply ? str(obj.reply) : str(salvaged || 'I produced output the app could not read. The raw text is under "Raw output".'),
+      changeNote: obj?.reply ? str(obj.change_note, 500) : '',
+      claims: obj?.reply && Array.isArray(obj.claims) ? obj.claims.slice(0, 5).map(c => ({ text: str(c?.text, 300), kind: KINDS.includes(c?.kind) ? c.kind : 'hypothesis' })).filter(c => c.text) : [],
       selfModelChanged: false,
     };
-    turn.selfModelChanged = applySelfModel(mem, obj?.self_model, turn.changeNote, userText, now);
-    if (obj?.person_model) mem.personModel = str(obj.person_model, 500);
+    turn.selfModelChanged = obj?.reply ? applySelfModel(mem, obj.self_model, turn.changeNote, userText, now) : false;
+    if (obj?.reply && obj.person_model) mem.personModel = str(obj.person_model, 500);
 
     const prevReply = [...mem.active].reverse().find(m => m.role === 'assistant')?.text;
     const flags = checkTalkTurn(turn, prevReply).map(f => ({ ...f, turn: mem.turns }));

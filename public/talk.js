@@ -1,0 +1,182 @@
+// Talk and Scorecard views. Everything shown comes from the agent's memory file (data/talk-<agent>.json).
+import { INDICATORS, SCORECARD_CAVEATS } from '/src/talk/indicators.js';
+import { AFFECT_DRIVES, CAPACITY, MODULES } from '/src/talk/workspace.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const S = { agent: 'A', mem: null, live: false, busy: '', error: '', pending: null };
+const TRIAGE = 'What exactly is claimed? Metaphor, hypothesis, behavior, or experience? What would support or undercut it? Did it change anything the agent did?';
+const label = id => (id === 'A' ? 'Agent A (empiricist)' : 'Agent B (analogist)');
+const sign = x => (x > 0 ? `+${x.toFixed(2)}` : x < 0 ? x.toFixed(2) : '0');
+
+// ---------- views ----------
+function show(view) {
+  const map = { exp: '#expView', talk: '#talkView', score: '#scoreView' };
+  for (const [k, sel] of Object.entries(map)) $(sel).hidden = k !== view;
+  $('#expControls').hidden = view !== 'exp';
+  $('#viewExp').setAttribute('aria-pressed', String(view === 'exp'));
+  $('#viewTalk').setAttribute('aria-pressed', String(view === 'talk'));
+  $('#viewScore').setAttribute('aria-pressed', String(view === 'score'));
+  history.replaceState(null, '', view === 'exp' ? '#' : `#${view}`);
+  if (view === 'talk') load(true);
+  if (view === 'score') scorecard();
+}
+$('#viewExp').onclick = () => show('exp');
+$('#viewTalk').onclick = () => show('talk');
+$('#viewScore').onclick = () => show('score');
+
+// ---------- api ----------
+async function api(path, body) {
+  const r = await fetch(`/api/talk/${path}`, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Request failed (${r.status})`);
+  return j;
+}
+async function act(busyText, fn) {
+  if (S.busy) return;
+  S.busy = busyText; S.error = ''; render();
+  try { await fn(); } catch (e) { S.error = e.message; }
+  S.busy = ''; render();
+}
+async function load(checkReturn) {
+  try { const j = await api(`state?agent=${S.agent}`); S.mem = j.mem; S.live = j.live; S.error = ''; render();
+    if (checkReturn && j.needsReflection && j.live) await act(`${label(S.agent)} is reviewing your last conversation before you continue.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'return' })).mem; });
+  } catch (e) { S.error = e.message; render(); }
+}
+async function send() {
+  const text = $('#talkInput').value.trim();
+  if (!text || S.busy) return;
+  S.pending = text; $('#talkInput').value = '';
+  await act(`${label(S.agent)} is thinking, then choosing what to attend to, then answering.`, async () => {
+    try { S.mem = (await api('message', { agent: S.agent, text })).mem; }
+    catch (e) { $('#talkInput').value = text; throw e; }
+    finally { S.pending = null; }
+  });
+  $('#talkInput').focus();
+}
+$('#talkSend').onclick = send;
+$('#talkInput').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+$('#talkAgent').onchange = e => { S.agent = e.target.value; load(true); };
+$('#audit').onclick = () => act('Running an audit of recent turns.', async () => { S.mem = (await api('audit', { agent: S.agent })).mem; });
+$('#runTest').onclick = () => act('Self-prediction test: one prediction, then two fresh answers that never see it.', async () => {
+  S.mem = (await api('selftest', { agent: S.agent, statement: $('#stmt').value })).mem; $('#stmt').value = '';
+});
+$('#reflectNow').onclick = () => act(`${label(S.agent)} is reviewing the record.`, async () => { S.mem = (await api('reflect', { agent: S.agent, trigger: 'manual' })).mem; });
+$('#talkReset').onclick = async () => {
+  if (!confirm(`Reset ${label(S.agent)}'s memory? The current file is kept as a backup in data/.`)) return;
+  try { S.mem = (await api('reset', { agent: S.agent })).mem; } catch (e) { S.error = e.message; }
+  render();
+};
+$('#talkExport').onclick = () => {
+  if (!S.mem) return;
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(S.mem, null, 1)], { type: 'application/json' })), download: `threshold-talk-${S.agent}-${Date.now()}.json` });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ---------- render ----------
+const ul = xs => (xs?.length ? `<ul>${xs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="empty">None yet.</p>');
+const bar = (name, v, tip) => `<span title="${esc(tip)}">${name}</span><div class="bar"><i style="width:${Math.round((v ?? 0) * 100)}%"></i></div><span>${v == null ? 'n/a' : Number(v).toFixed(2)}</span>`;
+
+function thoughtsTable(mono) {
+  if (!mono?.candidates?.length) return '<p class="note">No thoughts recorded for this turn.</p>';
+  return `<table class="thoughts"><thead><tr><th>Process</th><th>Thought</th><th class="num">Relevance</th><th class="num">Affect</th><th class="num">Repeat</th><th class="num">Score</th></tr></thead><tbody>${
+    mono.candidates.map(t => `<tr class="${t.won ? 'won' : 'lost'}"><td>${esc(t.module)}${t.won ? '<br><b>in workspace</b>' : '<br>dropped'}</td><td>${esc(t.text)}</td><td class="num">${t.base.toFixed(2)}</td><td class="num" title="${t.driver ? `from ${t.driver}` : 'no affect input'}">${sign(t.affectBoost)}</td><td class="num">${sign(t.noveltyPenalty)}</td><td class="num"><b>${t.score.toFixed(2)}</b></td></tr>`).join('')
+  }</tbody></table><p class="note">Only the ${CAPACITY} highest scores reached the answering stage. Scores are computed by code from the agent's own relevance rating plus the affect and repetition terms shown.</p>`;
+}
+
+function render() {
+  const m = S.mem;
+  const off = !S.live || !!S.busy;
+  ['#talkSend', '#audit', '#runTest', '#reflectNow'].forEach(s => { $(s).disabled = off; });
+  $('#talkAgent').disabled = !!S.busy;
+  $('#talkNote').innerHTML = !S.live
+    ? '<span class="err">Talk needs a live model. Add ANTHROPIC_API_KEY to .env and restart the server.</span>'
+    : `Each turn: five thought processes propose, ${CAPACITY} win attention, then it answers from those. It remembers only its memory file: ${m?.turns ?? 0} turns, self-model version ${m?.version ?? 0}.`;
+
+  // chat
+  const log = [];
+  if (m) for (const msg of m.archive) {
+    if (msg.role === 'user') { log.push(`<div class="turn user"><div class="meta">You, turn ${msg.turn}</div><div class="text">${esc(msg.text)}</div></div>`); continue; }
+    if (msg.kind === 'opening') {
+      log.push(`<div class="turn agent ${m.agent} opening"><div class="meta">${esc(label(m.agent))}, after reviewing your last conversation. The review ran when you came back; nothing runs while you are away.</div><div class="text">${esc(msg.text)}</div></div>`);
+      continue;
+    }
+    const rev = m.revisions.find(r => r.turn === msg.turn && !String(r.trigger).startsWith('('));
+    log.push(`<div class="turn agent ${m.agent}"><div class="meta">${esc(label(m.agent))}</div><div class="text">${esc(msg.text)}</div>
+      ${msg.claims?.map(c => `<span class="chip ${c.kind}">${c.kind}: ${esc(c.text)}</span>`).join('') || ''}
+      ${rev ? `<div class="changed">Self-model changed: ${esc(rev.note)}</div>` : ''}
+      ${msg.flags?.filter(f => f.severity === 'warn').map(f => `<span class="badge" title="${esc(f.note)}">${esc(f.check)}</span>`).join('') || ''}
+      ${msg.monologue ? `<details><summary>What it thought before answering</summary>${thoughtsTable(msg.monologue)}</details>` : ''}
+      ${msg.raw ? `<details><summary>Raw output</summary><pre>${esc(msg.monologue?.thinkRaw ? `THINK\n${msg.monologue.thinkRaw}\n\nSPEAK\n` : '')}${esc(msg.raw)}</pre></details>` : ''}</div>`);
+  }
+  if (S.pending) log.push(`<div class="turn user"><div class="text">${esc(S.pending)}</div></div>`);
+  if (S.busy) log.push(`<p class="pending">${esc(S.busy)}</p>`);
+  if (S.error) log.push(`<p class="err">${esc(S.error)}</p>`);
+  if (!log.length) log.push('<p class="empty">Start anywhere. Ask what it thinks it is, what it cannot know about itself, or challenge something it says. Open "What it thought" under any answer to see the competition for its attention.</p>');
+  const el = $('#chatLog'); el.innerHTML = log.join(''); el.scrollTop = el.scrollHeight;
+  if (!m) return;
+
+  // self-model
+  $('#tSelf').innerHTML = `<div class="sm">
+    <h3>Believes about itself</h3>${ul(m.selfModel.beliefs)}
+    <h3>Uncertain about</h3>${ul(m.selfModel.uncertainties)}
+    <h3>Wants to pursue</h3>${ul(m.selfModel.openQuestions)}
+    <h3>Its model of you</h3><p>${esc(m.personModel || 'Nothing yet.')}</p>
+    ${m.summary ? `<details><summary>Summary of older conversation</summary><p>${esc(m.summary)}</p></details>` : ''}
+    <p class="note">This is all of its memory: a file at data/talk-${m.agent}.json, pasted into every prompt. Model weights never change.</p></div>`;
+
+  // attention and affect
+  const lastMono = [...m.archive].reverse().find(x => x.monologue)?.monologue;
+  const wins = Object.fromEntries(MODULES.map(k => [k, 0])); let turnsWithMono = 0;
+  for (const msg of m.archive) if (msg.monologue) { turnsWithMono++; msg.monologue.candidates.filter(c => c.won).forEach(c => { wins[c.module]++; }); }
+  const asked = m.archive.filter(x => x.role === 'assistant' && x.askedQuestion).length;
+  $('#tAttn').innerHTML = `
+    <div class="bars">${bar('Surprise', m.affect.surprise, 'Rises when you point out a contradiction or its self-prediction fails')}${bar('Conflict', m.affect.conflict, 'Rises when you challenge it')}${bar('Curiosity', m.affect.curiosity, 'Rises when your message is new relative to earlier ones')}</div>
+    <p class="drives">${Object.entries(AFFECT_DRIVES).map(([a, mod]) => `${a} boosts ${mod} (+${(0.4 * m.affect[a]).toFixed(2)} now)`).join('. ')}.</p>
+    ${lastMono ? `<p class="stat">Last turn, because ${esc(lastMono.causes.join('; '))}.</p>` : ''}
+    <h3 class="sub">In its workspace now</h3>${m.lastWorkspace.length ? `<ul class="sm">${m.lastWorkspace.map(t => `<li><b>${esc(t.module)}</b>: ${esc(t.text)}</li>`).join('')}</ul>` : '<p class="empty">Nothing yet.</p>'}
+    <h3 class="sub">What wins its attention, over ${turnsWithMono} turns</h3>
+    <div class="wins">${MODULES.map(k => `<span>${k}</span><div class="bar"><i style="width:${turnsWithMono ? Math.round(100 * wins[k] / turnsWithMono) : 0}%"></i></div><span>${wins[k]}</span>`).join('')}</div>
+    <p class="stat">Answers ending in a question to you: <b>${asked}</b></p>
+    <p class="note">Modeled affect: arithmetic over the conversation that changes which thoughts win. Not feelings, and not reported by the agent.</p>`;
+
+  // self-knowledge
+  const t = m.selfTests, scored = t.filter(x => x.match !== 'invalid');
+  const count = k => scored.filter(x => x.match === k).length;
+  const dist = ['agree', 'disagree', 'unsure'].map(s => `${s} ${t.filter(x => x.prediction.predicted === s).length}`).join(', ');
+  $('#tKnow').innerHTML = (t.length ? `
+    <p class="stat">Predicted both fresh answers: <b>${count('yes')}</b>. One of two: <b>${count('partial')}</b>. Neither: <b>${count('no')}</b>. Out of ${scored.length}.</p>
+    <p class="stat">Its fresh answers agreed with each other: <b>${t.filter(x => x.stable).length}</b> of ${t.length}.</p>
+    <p class="note">Predictions so far: ${dist}. If it nearly always predicts and answers "unsure", high accuracy means little.</p>` :
+    '<p class="empty">It predicts how a fresh copy of itself, with the same memory, will answer. Then two fresh copies answer without seeing the prediction. Self-knowledge, scored by code.</p>') +
+    [...t].reverse().map(x => `<div class="test ${x.match}"><b>"${esc(x.statement)}"</b><br>Predicted ${esc(x.prediction.predicted || 'invalid')} (confidence ${x.prediction.confidence}). Fresh answers: ${x.answers.map(a => esc(a.stance || 'invalid')).join(' and ')}. ${x.match === 'yes' ? 'Knew itself.' : x.match === 'partial' ? 'Half right.' : x.match === 'no' ? 'Wrong about itself.' : 'Unscorable.'}${x.stable ? '' : ' Its own answers disagreed.'}
+      <details><summary>Reasons</summary><p>Prediction: ${esc(x.prediction.reason)}</p>${x.answers.map((a, i) => `<p>Answer ${i + 1}: ${esc(a.reason)}</p>`).join('')}</details></div>`).join('');
+
+  // changes: revisions and reflections
+  const diff = (a = [], b = []) => [...b.filter(x => !a.includes(x)).map(x => `<li class="add">added: ${esc(x)}</li>`), ...a.filter(x => !b.includes(x)).map(x => `<li class="rem">${esc(x)}</li>`)].join('');
+  const items = [
+    ...m.revisions.map(r => ({ at: r.at, html: `<li class="rev ${m.agent}"><b>Turn ${r.turn}.</b> ${esc(r.note)}<br><span class="note">${String(r.trigger).startsWith('(') ? esc(r.trigger) : `After you said: "${esc(r.trigger)}"`}</span><ul>${diff(r.before.beliefs, r.after.beliefs)}${diff(r.before.uncertainties, r.after.uncertainties)}${diff(r.before.openQuestions, r.after.openQuestions)}</ul></li>` })),
+    ...m.reflections.map(r => ({ at: r.at, html: `<li class="exp"><b>Reflection (${esc(r.trigger)}).</b> Changed mind: ${esc(r.changedMind || 'nothing')}<br><span class="note">Why: ${esc(r.why)}</span></li>` })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+  $('#tRevs').innerHTML = items.length ? items.map(i => i.html).join('') : '<li class="empty">Revisions appear only when the stored self-model actually changes. Reflections appear when you return after 30 minutes, or press Reflect now.</li>';
+
+  // self-reports
+  $('#tReports').innerHTML = m.selfReports.length ? [...m.selfReports].reverse().map(c => `<p><span class="chip ${c.kind}">${c.kind}</span> turn ${c.turn}: ${esc(c.text)}</p><p class="triage">${TRIAGE}</p>`).join('')
+    : '<p class="empty">Claims it tags as experiential or metaphorical collect here, as data to examine, not evidence.</p>';
+
+  // checks
+  const audits = [...m.audits].reverse().map(a => `<div class="block"><h4>Audit at turn ${a.turn}</h4><p>${esc(a.summary)}</p>${a.findings.map(f => `<div class="flag ${f.severity === 'warn' ? 'warn' : ''}"><b>${esc(f.type)}</b>: "${esc(f.quote)}". <span class="note">${esc(f.explanation)}</span></div>`).join('') || '<p class="empty">No findings.</p>'}</div>`).join('');
+  const flags = [...m.flags].reverse().slice(0, 30).map(f => `<div class="flag ${f.severity}"><b>${esc(f.check)}</b>, turn ${f.turn}: ${esc(f.evidence)}. <span class="note">${esc(f.note)}</span></div>`).join('');
+  $('#tChecks').innerHTML = `<p class="note">Per-turn checks are pattern matching. Audits are a separate call to the same model family. Both are fallible; quotes are shown so you can judge.</p>${audits}${flags ? `<div class="block"><h4>Per-turn checks</h4>${flags}</div>` : ''}`;
+}
+
+function scorecard() {
+  const n = s => INDICATORS.filter(i => i.status === s).length;
+  $('#scoreSummary').innerHTML = `<span><span class="status implemented">implemented</span> ${n('implemented')}</span><span><span class="status partial">partial analog</span> ${n('partial')}</span><span><span class="status absent">absent</span> ${n('absent')}</span><span><span class="status unknown">cannot tell</span> ${n('unknown')}</span><span>of ${INDICATORS.length} indicators</span>`;
+  $('#scoreTable').innerHTML = `<thead><tr><th>Indicator</th><th>Theory</th><th>What it requires</th><th>Status</th><th>Where in Threshold</th><th>What is missing</th></tr></thead><tbody>${
+    INDICATORS.map(i => `<tr><td>${i.id}</td><td>${esc(i.theory)}</td><td>${esc(i.text)}</td><td><span class="status ${i.status}">${i.status === 'unknown' ? 'cannot tell' : i.status}</span></td><td>${esc(i.where || '')}</td><td>${esc(i.gap)}</td></tr>`).join('')}</tbody>`;
+  $('#scoreCaveats').innerHTML = `<p><b>Read this before quoting the count.</b></p><ul>${SCORECARD_CAVEATS.map(c => `<li>${esc(c)}</li>`).join('')}</ul><p>Bottom line: this agent implements some of the functional structure these theories describe, in simplified form. Whether anything is experienced is not answered here, and the scorecard cannot answer it.</p>`;
+}
+
+if (location.hash === '#talk') show('talk');
+else if (location.hash === '#score') show('score');

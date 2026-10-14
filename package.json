@@ -1,0 +1,14 @@
+{
+  "name": "threshold-lab",
+  "version": "0.1.0",
+  "description": "Two agents, a hidden rule, and a record of whether talking and reflecting changes what they do next.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "batch": "node scripts/batch.js",
+    "test": "node scripts/selftest.js"
+  },
+  "engines": { "node": ">=18" }
+}

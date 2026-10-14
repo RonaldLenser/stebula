@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threshold: a lab notebook on dialogue, memory and self-models</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="title">
+    <h1>Threshold</h1>
+    <p>An AI agent lab. Every belief it holds about itself is recorded, tested against what it does, and open to inspection.</p>
+  </div>
+  <nav class="views" aria-label="View">
+    <button id="viewExp" class="tab" aria-pressed="true">Experiment</button>
+    <button id="viewTalk" class="tab" aria-pressed="false">Talk</button>
+    <button id="viewScore" class="tab" aria-pressed="false">Scorecard</button>
+  </nav>
+  <div id="expControls">
+  <div class="controls" role="group" aria-label="Run controls">
+    <label>Agents <select id="mode"><option value="mock">Scripted mock (no API key)</option><option value="live">Live model</option></select></label>
+    <label>Condition <select id="cond"></select></label>
+    <label>Seed <input id="seed" type="number" value="1" min="1"></label>
+    <label>Rounds <input id="rounds" type="number" value="4" min="1" max="8"></label>
+    <button id="run" class="primary">Run</button>
+    <button id="step">Step one round</button>
+    <button id="reset">Reset</button>
+    <button id="export">Export run</button>
+    <label class="file">Load run <input id="load" type="file" accept="application/json"></label>
+  </div>
+  <div class="controls inject" role="group" aria-label="Interventions">
+    <button id="counter" title="Adds a true example that fits the hidden rule but not the narrow decoy">Inject a counterexample</button>
+    <input id="note" type="text" placeholder="Add an experimenter note, constraint or question">
+    <button id="sendNote">Add note</button>
+    <span id="status" role="status">Ready.</span>
+  </div>
+  <div class="scrub">
+    <label for="scrubber">Replay</label>
+    <input id="scrubber" type="range" min="0" max="0" value="0" disabled>
+    <button id="play" disabled>Play from start</button>
+    <span id="scrubInfo"></span>
+  </div>
+  </div>
+</header>
+
+<main id="expView" class="grid">
+  <section id="conversation" class="panel tall" aria-labelledby="h-conv">
+    <h2 id="h-conv">Conversation</h2>
+    <div id="convBody" class="scroll"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-map">
+    <h2 id="h-map">Threshold map</h2>
+    <p class="cap" id="mapCap"></p>
+    <div class="scroll"><svg id="mapSvg" role="img" aria-label="Hypotheses held by each agent, and challenges between them"></svg></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-agents">
+    <h2 id="h-agents">Agent state</h2>
+    <div id="agentsBody" class="scroll"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-time">
+    <h2 id="h-time">Timeline of changes</h2>
+    <ol id="timeBody" class="scroll timeline"></ol>
+  </section>
+
+  <section class="panel" aria-labelledby="h-cmp">
+    <h2 id="h-cmp">Before and after</h2>
+    <div id="cmpBody" class="scroll"></div>
+  </section>
+
+  <section class="panel wide" aria-labelledby="h-refl">
+    <h2 id="h-refl">Reflection and checks</h2>
+    <div id="reflBody" class="scroll"></div>
+  </section>
+</main>
+
+<main id="talkView" class="talkgrid" hidden>
+  <section class="panel chat" aria-labelledby="h-talk">
+    <div class="chathead">
+      <h2 id="h-talk">Talk</h2>
+      <label>With <select id="talkAgent"><option value="A">Agent A (empiricist)</option><option value="B">Agent B (analogist)</option></select></label>
+      <button id="audit" title="A separate model call reviews recent turns for contradictions, sycophancy and overclaiming">Run audit</button>
+      <button id="talkExport">Export memory</button>
+      <button id="talkReset">Reset memory</button>
+    </div>
+    <p class="note" id="talkNote"></p>
+    <div id="chatLog" class="scroll" aria-live="polite"></div>
+    <div class="compose">
+      <textarea id="talkInput" rows="3" placeholder="Say something. Enter sends, Shift+Enter adds a line."></textarea>
+      <button id="talkSend" class="primary">Send</button>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="h-self"><h2 id="h-self">Self-model now</h2><div id="tSelf" class="scroll"></div></section>
+  <section class="panel" aria-labelledby="h-attn"><h2 id="h-attn">Attention and affect</h2><div id="tAttn" class="scroll"></div></section>
+  <section class="panel" aria-labelledby="h-know">
+    <h2 id="h-know">Does it know itself?</h2>
+    <div class="selftest">
+      <input id="stmt" type="text" placeholder="Statement to test, or leave blank for one from the bank">
+      <button id="runTest">Run self-prediction test</button>
+    </div>
+    <div id="tKnow" class="scroll"></div>
+  </section>
+  <section class="panel" aria-labelledby="h-revs">
+    <h2 id="h-revs">How it changed</h2>
+    <button id="reflectNow" class="small" title="Asks it to review the recent record and revise its self-model">Reflect now</button>
+    <ol id="tRevs" class="scroll timeline"></ol>
+  </section>
+  <section class="panel" aria-labelledby="h-reports"><h2 id="h-reports">Self-reports and metaphors</h2><div id="tReports" class="scroll"></div></section>
+  <section class="panel" aria-labelledby="h-checks"><h2 id="h-checks">Checks and audits</h2><div id="tChecks" class="scroll"></div></section>
+</main>
+
+<main id="scoreView" class="scoreview" hidden>
+  <section class="panel">
+    <h2>Indicator scorecard</h2>
+    <p class="lede">Scientific theories of consciousness each name properties a conscious system should have. This page lists them and says, plainly, which ones the Talk agent implements, in what form, and what is missing.</p>
+    <div id="scoreSummary"></div>
+    <div class="scroll"><table id="scoreTable"></table></div>
+    <div id="scoreCaveats"></div>
+  </section>
+</main>
+
+<footer class="honesty">
+  Everything on this page is drawn from the recorded event log. Agent statements about feelings or awareness are self-reports, kept as data, not evidence of experience.
+  All change lives in prompts and external memory. Model weights never change.
+</footer>
+<script type="module" src="/app.js"></script>
+<script type="module" src="/talk.js"></script>
+</body>
+</html>

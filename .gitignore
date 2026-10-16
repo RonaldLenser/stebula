@@ -6,3 +6,6 @@ data/*.json
 data/records/
 data/experiments/
 data/exports/
+
+# local agent worktrees
+.claude/worktrees/

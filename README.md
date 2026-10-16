@@ -2,7 +2,7 @@
 
 **Start here: [knowledge/README.md](knowledge/README.md)** holds everything known, decided, and planned for this project.
 
-A lab notebook you can run. Two language-model agents face a hidden rule, talk, test, decide, and reflect. Everything they say and every change to their memory is recorded, and the question is whether any of it changes what they do next.
+Stebula is a visual laboratory for how an AI agent's memory, self-description, attention mechanism and decisions interact. You can talk to the agent or read to it and watch, from recorded data, which information it received, which thoughts it proposed, which two won a limited workspace, what changed in its stored memory, and whether that change affects a later decision. Everything that "grows" is text in an external memory file that is pasted into prompts; the model's weights never change. The process view is a diagram of software state, not a scan of neural activity, and nothing here produces a consciousness score or says whether anything is experienced.
 
 ## The research question
 
@@ -10,110 +10,148 @@ Does structured interaction plus reflection on measured behavior produce changes
 
 This tests a narrow, functional slice of the guiding hypothesis ("consciousness may involve dynamic processes that emerge and reorganize through interaction, reflection and memory"). It can show whether those processes do measurable work in this system. It cannot show whether anything is experienced. That gap stays visible on purpose.
 
-## What you see
+The flagship experiment asks the smallest version of it: **does a stored lesson change the agent's next decision on a new problem?** Matched hidden-rule tasks, a relevant lesson versus no lesson versus a length-matched irrelevant lesson, the prediction recorded before the outcome, and scoring against ground truth that never appears in a prompt.
 
-- **Conversation**: every turn, test, prediction, synthesis and decision, with the exact prompt and raw output one click away.
-- **Hypothesis map**: each hypothesis an agent states, colored by whether its predictions held, with revisions and recorded challenges.
-- **Agent state**: persistent memory, self-model, lessons, model of the partner, and modeled affect (numbers computed from outcomes, labeled as such).
-- **Timeline**: revisions, failed predictions, interventions, memory writes and evaluator flags. Click to jump the replay there.
-- **Before and after**: measured results for episode 1 vs episode 2.
-- **Reflection and checks**: what each agent claims was established, what is unresolved, what it proposes to test next, memory diffs, evaluator flags, and claims to examine.
-- **Controls**: run, step one round, inject a true counterexample, add an experimenter note, reset, export, load, replay.
+## The three views
 
-Every visual is drawn from the event log. Decorative elements are labeled.
+- **Observe**: the conversation (about two thirds of the screen) and one contextual inspector with tabs Process, Changes, Memory, Checks and Raw. Selecting a message shows that turn's recorded state. After each turn, a short line says what changed. A failed or degraded stage is shown next to the conversation with a recovery action.
+- **Experiments**: Stored lesson (the flagship), Isolation, Compare agents, and the original two-agent hidden-rule runs.
+- **Research**: Findings, Methods and sources, Limitations, and the indicator Scorecard.
+
+Every visual is drawn from recorded state. Anything decorative is labeled.
 
 ## Talk
 
 An open conversation with Agent A or B, built on mechanisms taken from scientific theories of consciousness. Needs a live key.
 
-Each turn has two stages:
+Each turn has these stages:
 
-1. **Think.** Five processes each propose one thought: perception, memory, self-monitor, evaluation, initiative.
+1. **Think.** Five processes each propose one thought: perception, memory, self-monitor, evaluation, initiative. The set is validated: five unique recognized roles, valid text, relevance from 0 to 1.
 2. **Compete.** Code scores the thoughts. Only 2 enter the workspace (global workspace theory). Modeled affect shifts the odds: surprise boosts self-monitoring, conflict boosts evaluation, curiosity boosts initiative. Repeating last turn's thoughts is penalized.
 3. **Speak.** The answering stage sees only the winning thoughts. Losers are dropped and logged.
 
-Open "What it thought" under any answer to see every candidate, its score breakdown, and what won.
+If the thinking stage fails (for example the provider refuses), the turn continues as **degraded**: it is labeled, shown, and excluded from analysis. If the speaking stage fails, the turn fails and nothing is saved.
 
 Also in Talk:
 
-- **Persistent memory** in `data/talk-A.json`: self-model, its model of you, a rolling summary, every message. That file is all it remembers.
-- **Self-prediction tests**: it predicts whether a fresh copy of itself will agree with a statement, then two fresh copies answer without seeing the prediction. Code scores whether it knows itself, and whether its own answers are stable.
-- **Between-session reflection**: come back after 30 minutes and it reviews the last conversation, revises its self-model, and opens with something it wants to say or ask. The review runs when you return. Nothing runs while you are away, and the app says so.
-- **Revision history**: every self-model change with before, after, reason, and trigger.
-- **Checks and audits**: per-turn flags for confident experience claims, confident denials, sycophancy, repetition; a separate audit call on demand.
+- **Persistent memory** in `data/talk-A.json`: self-model, its model of you, a rolling summary, reading memories, every message. That file is all it remembers. A bounded, relevant slice of it is delivered to each model call, and the record says exactly which memory ids were delivered. A memory switch turns delivery off.
+- **Self-prediction tests** ("Can it predict its next answer?"): it predicts whether a fresh copy of itself will agree with a statement, then two fresh copies answer without seeing the prediction. Unreadable answers make a test invalid, not wrong.
+- **Between-session reflection**: come back after 30 minutes and it reviews the last conversation. Nothing runs while you are away.
+- **Revision history**, **checks and audits**, and **Read to Stebula** (Digest) with a code-controlled personality model.
 
 What it is told about itself: nobody currently knows whether it has subjective experience, so it should neither claim nor deny that with certainty. It is never told to perform awareness or its absence. Read `src/talk/prompts.js`.
 
-Cost: 2 model calls per message, 3 per self-prediction test, 1 per reflection or audit.
+Cost: 2 model calls per message (more if a stage is retried), 3 per self-prediction test, 1 per reflection or audit.
 
 ## Scorecard
 
-Fourteen indicator properties drawn from theories of consciousness (following Butlin, Long et al. 2023), with an honest status for each: implemented, partial analog, absent, or cannot tell. Current count: 1 implemented, 6 partial, 6 absent, 1 cannot tell. The page explains why that count does not settle anything.
+Fourteen indicator properties drawn from theories of consciousness (following Butlin, Long et al. 2023), with an honest status for each. The page explains why the count does not settle anything.
 
-## Run it
+## One reproducible demonstration
 
-Requires Node 18 or newer and Git. No dependencies.
+This needs no key and costs nothing. It shows the pipeline, not the hypothesis.
 
-```bash
-gh repo clone RonaldLenser/stebula && cd stebula
-npm test              # checks the plumbing with scripted mock agents
-npm start             # open http://localhost:5173
-```
-
-`npm start` keeps itself current. It pulls new commits from GitHub on start and every 2 minutes, notices local commits too, restarts the server, and the page offers a reload. It never overwrites uncommitted edits. Use `npm run serve` to run without updating.
-
-For real agents:
-
-```bash
-cp .env.example .env  # add ANTHROPIC_API_KEY, optionally MODEL
+```powershell
+npm test                          # all test files, scripted stubs only
+node scripts/make-example.js      # rebuilds examples/observe-example.json (scripted fixture)
 npm start
 ```
 
-## Working on it with Claude Code
+Then, with the server running, either open Experiments, Stored lesson, and press Run with the scripted double selected, or from a second terminal:
 
-Open Claude Code in this folder and describe the change. `CLAUDE.md` tells it the rules: test, commit, push. The running app updates itself.
-
-## Run the experiment properly
-
-One run is an anecdote. Experiment 01 compares four conditions across seeds:
-
-```bash
-npm run batch -- --mode mock --seeds 10                 # free, plumbing only
-npm run batch -- --mode live --seeds 20 --rounds 4      # real test, costs API calls
+```powershell
+curl.exe -N -X POST http://localhost:5173/api/lesson -H "content-type: application/json" -d '{\"mode\":\"scripted\",\"tasks\":8}'
 ```
 
-Live cost: about 14 model calls per episode for a dyad, 2 episodes per run, per seed, per condition. 20 seeds x 4 conditions is roughly 1,000 calls. Start with `--seeds 3 --conditions dyad-reflect,dyad-nomemory`.
+You will see 24 trials stream (8 matched tasks times 3 conditions). The relevant-lesson condition scores higher than the others **because the scripted double is written to react to that lesson text**. That proves the lesson reaches the prompt, the prediction is recorded before the outcome, scoring uses ground truth, and invalid trials are counted. It says nothing about any real model. A real result needs a live run with an explicit call budget, and the pilot labels say so.
 
-The batch prints a comparison table and saves every event log in `runs/`. Load any run in the app to replay it.
+## Run it on Windows
+
+1. Install Node.js 18 or newer from nodejs.org, and Git.
+2. In PowerShell:
+
+```powershell
+git clone https://github.com/RonaldLenser/stebula.git
+cd stebula
+git checkout improve/audit-2026-10
+Copy-Item .env.example .env       # optional: add ANTHROPIC_API_KEY for live mode
+npm test
+npm start
+```
+
+3. Open http://localhost:5173.
+
+`npm start` keeps itself current when the branch has an upstream: it pulls new commits on start and every 2 minutes, restarts the server cleanly, and waits while a conversation or experiment is running. It never overwrites uncommitted edits. Use `npm run serve` to run without updating.
+
+The server listens on `127.0.0.1` only, so only your computer can reach it. Settings go in `.env`:
+
+| Variable | Meaning |
+|---|---|
+| `ANTHROPIC_API_KEY` | Enables live mode. Never committed, never written to the record. |
+| `MODEL` | Model name. Default `claude-sonnet-5-5`. |
+| `PORT` | Default 5173. |
+| `HOST` | Default `127.0.0.1`. A network address makes the server reachable from the network and then `STEBULA_TOKEN` is required for every `/api` call. |
+| `STEBULA_TOKEN` | Access token (sent as `Authorization: Bearer`). Required when `HOST` is not loopback. |
+| `STEBULA_PUBLIC` | `1` serves replay only: no live calls, no stored conversations, no exports. |
+| `LIVE_MAX_CALLS` | Cap on one live experiment's model calls. Default 120. Raise it on purpose. |
+| `STEBULA_DATA` | Folder for memory, records and experiments. Default `data/`. |
+| `REQUEST_TIMEOUT_MS` | Per model request timeout. Default 90000. |
+| `MAX_RETRIES` | Retries for transient provider errors (429, 5xx, network). Default 2. |
+
+## Working on it with Claude Code
+
+Open Claude Code in this folder and describe the change. `CLAUDE.md` tells it the rules: test, commit, push. Work on a branch; the running app auto-updates from whichever branch it is on.
+
+## Run the two-agent experiment properly
+
+One run is an anecdote. Experiment 01 compares four conditions across seeds. The unit of analysis is the run: the two agents in a dyad talk to each other, so a dyad run counts once.
+
+```powershell
+npm run batch -- --mode mock --seeds 10                              # free, plumbing only
+npm run batch -- --mode live --seeds 3 --rounds 4 --max-calls 400   # costs API calls
+```
+
+The batch prints its plan first: calls are computed from the execution plan, before retries. Four conditions, 20 seeds, 4 rounds is **2,040 calls**; one seed is 102. A live batch refuses to start without `--max-calls` that covers the estimate. The batch saves every event log in `runs/` with a manifest (mode, model, code revision, seeds, usage, excluded runs).
 
 ## Where the data lives
 
 | Path | What | In git? |
 |---|---|---|
-| `data/talk-A.json`, `talk-B.json` | Each agent's memory file: self-model, personality evidence log, episodic memories | No |
-| `data/records/YYYY-MM-DD.jsonl` | The complete record, append-only, one JSON object per line: every input, model call (full prompt, raw output, model, usage, latency), stream stage, memory and personality change, self-test, audit, and digest | No |
-| `data/exports/*.csv` | Clean CSVs made by the Export data button on the Findings tab (columns in `docs/DATA_DICTIONARY.md`) | No, commit by choice with `git add -f` |
-| `data/findings.json` | The findings registry: locked predictions, versions, results | No, commit by choice with `git add -f` |
-| `data/experiments/<run>/` | Isolation experiment runs, with each condition's memory and `result.json` | No |
-| `data/talk-*-backup-*.json` | Old memory kept when you reset | No |
+| `data/talk-A.json`, `talk-B.json` | Each agent's memory file: self-model, personality evidence log, reading memories. Written atomically (temp file, then rename). | No |
+| `data/records/YYYY-MM-DD.jsonl` | The complete record, append-only: every input, model call attempt (full prompt, raw output, model, stop reason, usage, latency, memory ids supplied), stream stage, memory and personality change, self-test, audit, digest, experiment event. | No |
+| `data/exports/*.csv` | CSVs made by Export data (columns in `docs/DATA_DICTIONARY.md`) | No, commit by choice with `git add -f` |
+| `data/findings.json` | The findings registry: locked predictions, versions, results. One serialized writer. | No, commit by choice with `git add -f` |
+| `data/experiments/<run>/protocol.json` | The protocol and predictions, written and hashed before the first model call | No |
+| `data/experiments/<run>/result.json` | The run's result, manifest (model, prompt version, code revision), usage and exclusions. Lesson runs keep every trial's prompts and raw outputs for replay. | No |
+| `data/experiments/<run>/<condition>/` | The treatment memory of each isolation condition | No |
+| `data/talk-*-backup-*.json`, `talk-*-damaged-*.json` | Old memory kept when you reset | No |
+| `examples/observe-example.json` | A scripted example for the empty state. Labeled scripted. | Yes |
 
-Nothing in the record is rewritten or deleted. A reset moves the old memory to a backup file and adds a `reset` record. The API key is never written to the record. `docs/HUMAN_COMPARISON.md` and `docs/DATA_DICTIONARY.md` are generated from code: run `npm run docs` after changing columns or citations; the tests fail if they are stale.
+Rules the files follow:
+
+- Nothing in the record is rewritten or deleted. A reset moves the old memory to a backup file, under the same lock as conversation, and adds a `reset` record.
+- Only a genuinely missing memory or registry file means "start fresh". A damaged file is reported with a recovery option (restore a backup, or "start fresh and keep the damaged file"); it is never silently replaced.
+- A failed record append is not swallowed. The record queues the line, prints the failure, and reports it in `/api/health` and in the export headers. A shutdown flushes the record.
+- Experiment checkpoints are **assessments** run on a snapshot of the agent's memory. They are stored in `result.json`, never in the treatment memory, so assessing an agent does not change it.
+- `docs/HUMAN_COMPARISON.md` and `docs/DATA_DICTIONARY.md` are generated from code: run `npm run docs` after changing columns or citations. The tests and CI fail if they are stale.
 
 ## Architecture
 
+See [knowledge/03-architecture.md](knowledge/03-architecture.md). In short:
+
 ```
 src/env/ruleTask.js       hidden-rule tasks, ground truth, scoring (code, not a model)
-src/agents/prompts.js     every word agents see
-src/agents/live.js        LLM agent
-src/agents/mock.js        scripted stand-in for running without a key
-src/memory/store.js       persistent per-agent memory and diffs
-src/engine/run.js         experiment protocol, conditions, event log
-src/engine/affect.js      modeled affect variables
-src/eval/checks.js        evaluator: flattery, repetition, shared priors, unsupported certainty, stated-vs-actual gaps
-public/                   browser app, renders only from the event log
-scripts/batch.js          multi-seed condition comparison
-docs/                     research map, experiment design, limitations
+src/agents/               prompts, live and scripted agents, model transport (timeouts, retries, structured output)
+src/engine/               two-agent experiment protocol, analysis per run, call estimates
+src/talk/                 Talk agent: context contract, stage schemas, session, digest, personality, workspace
+src/research/             lesson experiment, isolation experiment, findings registry, metrics, protocols, exports
+src/lib/                  stage runner, records, jobs, access control, atomic writes
+public/                   browser app, renders only from recorded state
+scripts/                  launcher, batch, tests, doc and example generators
+docs/                     research map, limitations, generated data dictionary and human comparison
 ```
+
+CI (`.github/workflows/ci.yml`) runs `npm test` and checks the generated docs on Node 20 and 22. It has not been observed passing from this checkout; check the Actions tab after pushing.
 
 ## Read before believing anything
 
@@ -123,11 +161,7 @@ docs/                     research map, experiment design, limitations
 
 ## Roadmap
 
-1. **v0.1 (this)**: hidden-rule task, two agents, memory, reflection, evaluator, replay, batch comparison.
-2. **v0.2**: run Experiment 01 live across 20+ seeds. Verify every reference. Add an LLM judge alongside the heuristic checks and measure where they disagree.
-3. **v0.3**: harder task family the model has not seen in training (to escape ceiling effects), misleading-evidence injections, side-by-side comparison of two runs.
-4. **v0.4**: dialogue experiments on self-observation ("catching your own shadow"): agents predict their own next answer, then compare. Tests self-model accuracy directly.
-5. **v0.5**: limited-capacity shared workspace (global workspace analog) vs open log, as an ablation.
+See [knowledge/06-roadmap.md](knowledge/06-roadmap.md). Next for the owner: live runs with an explicit budget (the lesson experiment pilot, Experiment 01 pilot, 20 Talk turns).
 
 ## License
 

@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT || 5173);
 const LIVE = Boolean(process.env.ANTHROPIC_API_KEY);
 const MODEL = process.env.MODEL || 'claude-sonnet-5-5';
 const llm = LIVE ? makeNodeLLM() : null;
+const VERSION = process.env.THRESHOLD_VERSION || 'dev';
 const DATA = path.join(ROOT, 'data');
 const talk = makeTalkStore(DATA);
 const NO_KEY = 'Talk needs a live model. Add ANTHROPIC_API_KEY to .env and restart. Scripted mocks cannot hold a conversation.';
@@ -34,6 +35,7 @@ http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname === '/api/config') return send(res, 200, { live: LIVE, model: LIVE ? MODEL : null });
+    if (url.pathname === '/api/version') return send(res, 200, { version: VERSION });
     if (url.pathname === '/api/llm' && req.method === 'POST') {
       if (!llm) return send(res, 400, { error: 'No ANTHROPIC_API_KEY in .env. Use mock mode or add a key and restart.' });
       const { system, user } = JSON.parse(await readBody(req));

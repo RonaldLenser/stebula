@@ -278,3 +278,15 @@ function reflection(evs) {
 const fmtSelf = m => (!m ? '(empty)' : `strategy: ${m.selfModel.strategy || '(none)'}\nstrengths: ${m.selfModel.strengths.join('; ') || '(none)'}\nweaknesses: ${m.selfModel.weaknesses.join('; ') || '(none)'}\nlessons: ${m.lessons.join(' | ') || '(none)'}`);
 
 buttons(); render();
+
+// Auto-update notice: the launcher restarts the server when new code lands; offer a reload.
+let version = null;
+async function checkVersion() {
+  try {
+    const v = (await (await fetch('/api/version')).json()).version;
+    if (version && v !== version) $('#updateBar').hidden = false;
+    version ??= v;
+  } catch { /* server restarting: try again next tick */ }
+}
+checkVersion(); setInterval(checkVersion, 30_000);
+$('#reloadNow').onclick = () => location.reload();

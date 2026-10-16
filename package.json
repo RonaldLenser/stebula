@@ -1,14 +1,17 @@
 {
   "name": "threshold-lab",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Two agents, a hidden rule, and a record of whether talking and reflecting changes what they do next.",
   "type": "module",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start": "node server.js",
-    "batch": "node scripts/batch.js",
-    "test": "node scripts/selftest.js"
+    "start": "node scripts/run.js",
+    "serve": "node server.js",
+    "test": "node scripts/selftest.js",
+    "batch": "node scripts/batch.js"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

@@ -206,3 +206,7 @@ ul.sm li { margin: 2px 0; }
 .voicebar { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 13px; margin-top: 8px; color: var(--muted); }
 .voicebar label { display: flex; align-items: center; gap: 6px; }
 .voicebar select { max-width: 220px; font-size: 13px; }
+
+/* update banner */
+.updatebar { position: sticky; top: 0; z-index: 5; background: var(--ink); color: var(--paper); padding: 8px 24px; font-size: 14px; display: flex; gap: 12px; align-items: center; }
+.updatebar button { background: var(--paper); color: var(--ink); border-color: var(--paper); padding: 3px 10px; }

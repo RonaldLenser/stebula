@@ -1,4 +1,6 @@
-# Threshold
+# Threshold (becoming Stebula)
+
+**Start here: [knowledge/README.md](knowledge/README.md)** holds everything known, decided, and planned for this project.
 
 A lab notebook you can run. Two language-model agents face a hidden rule, talk, test, decide, and reflect. Everything they say and every change to their memory is recorded, and the question is whether any of it changes what they do next.
 
@@ -50,22 +52,26 @@ Fourteen indicator properties drawn from theories of consciousness (following Bu
 
 ## Run it
 
-Requires Node 18 or newer. No dependencies.
+Requires Node 18 or newer and Git. No dependencies.
 
 ```bash
-git clone <this repo> && cd threshold-lab
-npm test              # checks task construction and the pipeline (scripted mock agents)
+gh repo clone RonaldLenser/threshold-lab && cd threshold-lab
+npm test              # checks the plumbing with scripted mock agents
 npm start             # open http://localhost:5173
 ```
 
-Mock mode works with no key. Its agents are a small scripted algorithm whose improvement is designed in, so it tests the plumbing, not the hypothesis.
+`npm start` keeps itself current. It pulls new commits from GitHub on start and every 2 minutes, notices local commits too, restarts the server, and the page offers a reload. It never overwrites uncommitted edits. Use `npm run serve` to run without updating.
 
 For real agents:
 
 ```bash
 cp .env.example .env  # add ANTHROPIC_API_KEY, optionally MODEL
-npm start             # choose "Live model" in the Agents menu
+npm start
 ```
+
+## Working on it with Claude Code
+
+Open Claude Code in this folder and describe the change. `CLAUDE.md` tells it the rules: test, commit, push. The running app updates itself.
 
 ## Run the experiment properly
 
@@ -98,9 +104,9 @@ docs/                     research map, experiment design, limitations
 
 ## Read before believing anything
 
-- [docs/EXPERIMENT_01.md](docs/EXPERIMENT_01.md): design, predictions, and what counts against the hypothesis
+- [knowledge/05-experiments/exp01-hidden-rule.md](knowledge/05-experiments/exp01-hidden-rule.md): design, predictions, and what counts against the hypothesis
 - [docs/LIMITATIONS.md](docs/LIMITATIONS.md): what this cannot show
-- [docs/RESEARCH_MAP.md](docs/RESEARCH_MAP.md): theories, what each informs, what the build fails to capture. References are not yet verified.
+- [knowledge/04-research/](knowledge/04-research/): theories, scorecard, human vs AI development, human research reference. References are not yet verified.
 
 ## Roadmap
 

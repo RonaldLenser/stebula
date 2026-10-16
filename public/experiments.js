@@ -34,7 +34,8 @@ function lessonEstimate() {
   $('#lBudgetField').hidden = !live;
   if (live && !$('#lBudget').value) $('#lBudget').value = String(n);
   $('#lRun').textContent = live ? 'Run with the live model' : 'Run the scripted double';
-  $('#lRun').disabled = !conds.length || !!E.lesson.job || (live && !E.cfg?.live);
+  $('#lRun').disabled = !conds.length || !!E.lesson.job || (live && !E.cfg?.live) || !!E.cfg?.public;
+  if (E.cfg?.public) $('#lEstimate').innerHTML += ' <b>Runs are turned off on this public server.</b>';
 }
 async function lessonRuns(select) {
   try { E.lesson.runs = (await api('/api/lesson/runs')).runs; } catch { E.lesson.runs = []; }
@@ -78,6 +79,7 @@ function trialHtml(t, run) {
 }
 function renderLesson() {
   const run = E.lesson.run, box = $('#lessonResults');
+  if (!run && E.cfg?.public) { box.innerHTML = '<div class="card"><p><b>No recorded runs on this public server.</b> Experiments run on a private copy, and public mode is replay only.</p></div>'; return; }
   if (!run) { box.innerHTML = `<div class="card"><p><b>No runs yet.</b> The quickest way to see how this works is the scripted double: it needs no key and costs nothing. It is a script, not a model, so it shows the pipeline and not the answer.</p><button class="btn primary" id="lTryScripted">Run the scripted double</button></div>`; $('#lTryScripted').onclick = () => { $('#lMode').value = 'scripted'; lessonEstimate(); $('#lessonForm').requestSubmit(); }; return; }
   box.innerHTML = lessonResultsHtml(run);
   const showTrial = () => { $('#trialDetail').innerHTML = E.lesson.trial != null ? trialHtml(run.trials[E.lesson.trial], run) : ''; };
@@ -114,7 +116,8 @@ async function isoEstimate() {
     $('#iEstimate').innerHTML = `About <b>${r.calls} model calls</b> before retries (a turn or a reading is 2 calls, a checkpoint is 7). This costs real credit; the server caps a run at ${r.maxLiveCalls} calls unless you raise it on purpose.`;
     if (!$('#iBudget').value || Number($('#iBudget').dataset.auto) === Number($('#iBudget').value)) { $('#iBudget').value = String(r.calls); $('#iBudget').dataset.auto = String(r.calls); }
   } catch (e) { $('#iEstimate').textContent = e.message; }
-  $('#iRun').disabled = !conditions.length || !!E.iso.job || !E.cfg?.live;
+  $('#iRun').disabled = !conditions.length || !!E.iso.job || !E.cfg?.live || !!E.cfg?.public;
+  if (E.cfg?.public) $('#iEstimate').innerHTML += ' <b>Runs are turned off on this public server.</b>';
 }
 async function isoRuns(select) {
   try { E.iso.runs = (await api('/api/experiment/runs')).runs; } catch { E.iso.runs = []; }

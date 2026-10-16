@@ -157,4 +157,28 @@ await withServer({ STEBULA_TOKEN: 'tok123' }, async base => {
   assert.equal((await fetch(base + '/api/talk/state?agent=A', { headers: { authorization: 'Bearer tok123' } })).status, 200);
 });
 
+// ---- running work: reported to the launcher, cancelled on disconnect, record flushed on shutdown ----
+{
+  const d = await mkdtemp(join(tmpdir(), 'life-'));
+  const port = 5300 + Math.floor(Math.random() * 400);
+  const child = spawn(process.execPath, ['server.js'], { env: { ...process.env, PORT: String(port), STEBULA_DATA: d, STEBULA_FAKE_LLM: '1', ANTHROPIC_API_KEY: '' }, stdio: ['ignore', 'pipe', 'inherit', 'ipc'] });
+  await new Promise((res, rej) => { child.stdout.on('data', b => /STEBULA at/.test(String(b)) && res()); child.once('exit', c => rej(new Error('server exited ' + c))); setTimeout(() => rej(new Error('no start')), 8000); });
+  const activity = () => new Promise(res => { const on = m => { if (m?.type === 'activity') { child.off('message', on); res(m); } }; child.on('message', on); child.send({ type: 'activity' }); });
+  assert.equal((await activity()).active, 0, 'idle server reports no work');
+  const ac = new AbortController();
+  const slow = fetch(`http://127.0.0.1:${port}/api/talk/stream`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent: 'A', text: '[slow] wait' }), signal: ac.signal }).then(r => r.text()).catch(() => 'aborted');
+  let busy = 0; for (let i = 0; i < 30 && !busy; i++) { await new Promise(r => setTimeout(r, 100)); busy = (await activity()).active; }
+  assert.equal(busy, 1, 'a running conversation turn is reported, so the launcher defers a restart');
+  ac.abort(); await slow;
+  let after = 1; for (let i = 0; i < 40 && after; i++) { await new Promise(r => setTimeout(r, 100)); after = (await activity()).active; }
+  assert.equal(after, 0, 'disconnecting cancels the work on the server');
+  const code = await new Promise(r => { child.once('exit', r); child.send('shutdown'); });
+  assert.equal(code, 0, 'graceful shutdown exits cleanly');
+  const { readRecords } = await import('../src/lib/records.js');
+  const recs = await readRecords(d);
+  assert(recs.some(r => r.type === 'turn_cancelled'), 'the cancelled turn was recorded and flushed before exit');
+  assert(recs.every(r => r.revision), 'every record carries the code revision');
+  await rm(d, { recursive: true, force: true });
+}
+
 console.log('storage, access and HTTP ok');

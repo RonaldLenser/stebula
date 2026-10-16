@@ -171,6 +171,15 @@ try {
   await shot(p, '09-experiments-results');
   await p.mouse('[data-sub=isolation]'); await p.waitFor('!document.querySelector("#sub-isolation").hidden');
   await p.waitFor('document.querySelector("#isoResults").innerText.length > 0 && document.querySelector("#iEstimate").innerText.length > 0'); assert.match(await p.q('#iEstimate', 'innerText'), /model calls/); assert.match(await p.q('#isoResults', 'innerText'), /No runs yet/); ok('isolation experiment page: estimate and empty state');
+  // run a small isolation experiment through the form (scripted test model): protocol, checkpoints, usage
+  await p.click('input[name=ic][value=social]'); await p.click('input[name=ic][value=mixed]');
+  await p.type('#iSteps', '1'); await p.type('#iEvery', '1'); await p.evaluate('document.querySelector("#iSteps").dispatchEvent(new Event("input")); document.querySelector("#iEvery").dispatchEvent(new Event("input"))');
+  await p.waitFor('document.querySelector("#iEstimate").innerText.includes("model calls")'); await p.evaluate('document.querySelector("#iBudget").value = ""; document.querySelector("#iEstimate").dispatchEvent(new Event("x"))');
+  await p.type('#iBudget', '60');
+  await p.mouse('#iRun'); await p.waitFor('document.querySelector("#isoResults").innerText.includes("Checkpoints")', 40000, 'isolation results');
+  assert.match(await p.q('#isoResults', 'innerText'), /written before the first model call/); assert.match(await p.q('#isoResults', 'innerText'), /isolated/); assert.match(await p.q('#isoResults', 'innerText'), /baseline/);
+  assert.match(await p.q('#isoResults', 'innerText'), /snapshot of memory/); ok('an isolation experiment runs from the form and shows checkpoints, protocol hash, usage and the snapshot note');
+  await shot(p, '08b-isolation-results');
   await p.mouse('[data-sub=compare]'); await p.waitFor('document.querySelector("#cmpGrid").innerText.length > 10'); ok('compare agents page renders');
   await p.mouse('[data-sub=rules]'); await p.mouse('#run'); await p.waitFor('document.querySelector("#status").textContent.includes("Run complete")', 20000); ok('the original two-agent hidden-rule run still works (scripted mock)');
   await shot(p, '10-experiments-rules');
@@ -203,6 +212,19 @@ try {
   ok('mobile: Experiments and Research fit the screen');
   assert.deepEqual(p.errors, [], `no console errors on mobile: ${p.errors.join(' | ')}`);
   await p.close();
+  // ================= public replay server =================
+  const pubPort = port + 1, pub = spawn(process.execPath, ['server.js'], { env: { ...process.env, PORT: String(pubPort), STEBULA_DATA: data + '-pub', STEBULA_PUBLIC: '1', ANTHROPIC_API_KEY: '' }, stdio: ['ignore', 'pipe', 'inherit', 'ipc'] });
+  try {
+    await new Promise((res, rej) => { pub.stdout.on('data', b => /STEBULA at/.test(String(b)) && res()); pub.once('exit', c => rej(new Error('public server exited ' + c))); setTimeout(() => rej(new Error('public server did not start')), 8000); });
+    p = await launch({ width: 1366, height: 850 });
+    await p.goto(`http://localhost:${pubPort}/#observe`);
+    await p.waitFor('document.querySelectorAll(".msg.agent[data-turn]").length >= 3', 10000);
+    assert.match(await p.q('#modelChip'), /Public replay/); assert(await p.evaluate('document.querySelector("#talkInput").disabled && document.querySelector("#talkSend").disabled'));
+    assert.match(await p.q('#banner', 'innerText'), /Scripted example/); assert(!(await p.exists('[data-act=leave-example]')), 'no way into a live agent on a public server');
+    await p.mouse('#viewExperiments'); await p.waitFor('document.querySelector("#lEstimate").innerText.includes("turned off")'); assert(await p.evaluate('document.querySelector("#lRun").disabled'));
+    await shot(p, '16-public-replay'); ok('public replay server: example only, no live controls, runs turned off');
+    await p.close(); p = null;
+  } finally { pub.send('shutdown'); await new Promise(r => { pub.once('exit', r); setTimeout(() => { pub.kill(); r(); }, 4000); }); await rm(data + '-pub', { recursive: true, force: true }).catch(() => {}); }
   console.log(`\nBrowser checks passed (${step} checks). Screenshots: ${SHOTS}`);
 } catch (e) {
   console.error('\nBROWSER CHECK FAILED:', e.message);

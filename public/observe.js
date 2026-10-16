@@ -197,7 +197,7 @@ function processTab() {
   const steps = [];
   steps.push(`<li><h4>Heard ${TAGS.observed}</h4><p>${state.heard ? `"${esc(state.heard.slice(0, 300))}"` : '<span class="nodata">No data</span>'}</p></li>`);
   const aff = state.affect;
-  steps.push(`<li${aff ? '' : ' class="skipped"'}><h4>Signals ${TAGS.code}</h4>${aff ? `<div class="bars">${[['surprise', 'Surprise'], ['conflict', 'Conflict'], ['curiosity', 'Curiosity']].map(([k, n]) => `<span>${n}</span><div class="bar"><i style="width:${Math.round((aff[k] ?? 0) * 100)}%"></i></div><span>${fmt(aff[k])}${mono?.affectBefore ? ` <span class="note">(was ${fmt(mono.affectBefore[k])})</span>` : ''}</span>`).join('')}</div>
+  steps.push(`<li${aff ? '' : ' class="skipped"'}><h4>Conversation signals ${TAGS.code}</h4>${aff ? `<div class="bars">${[['surprise', 'Surprise'], ['conflict', 'Conflict'], ['curiosity', 'Curiosity']].map(([k, n]) => `<span>${n}</span><div class="bar"><i style="width:${Math.round((aff[k] ?? 0) * 100)}%"></i></div><span>${fmt(aff[k])}${mono?.affectBefore ? ` <span class="note">(was ${fmt(mono.affectBefore[k])})</span>` : ''}</span>`).join('')}</div>
     <p class="note">Modeled from the conversation. Not felt. ${state.causes?.length ? `Because ${esc(state.causes.join('; '))}.` : ''} Each signal boosts one process: ${signalBoosts(aff).map(b => `${b.signal} boosts ${b.region} by ${sign(b.boost) || '0'}`).join('; ')}.</p>` : (live ? '<p class="pending">Waiting.</p>' : '<p class="nodata">No data recorded.</p>')}</li>`);
   // proposals
   let prop;

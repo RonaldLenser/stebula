@@ -43,7 +43,7 @@ function pull() {
 let child = null, running = null, stopping = false, crashes = [];
 function start() {
   running = head();
-  child = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, THRESHOLD_VERSION: running } });
+  child = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, STEBULA_VERSION: running } });
   child.on('exit', code => {
     child = null;
     if (stopping) return;

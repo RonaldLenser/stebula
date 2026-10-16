@@ -2,7 +2,7 @@
 
 Exact prompts for Claude Code, in order. Run each, let it finish and push, then run the next. Mark status here when done.
 
-## Prompt 1: Rename and live brain view (status: not started)
+## Prompt 1: Rename and live brain view (status: done)
 
 ```text
 Rename the project to Stebula and make the Talk screen a live brain view.

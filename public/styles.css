@@ -210,3 +210,55 @@ ul.sm li { margin: 2px 0; }
 /* update banner */
 .updatebar { position: sticky; top: 0; z-index: 5; background: var(--ink); color: var(--paper); padding: 8px 24px; font-size: 14px; display: flex; gap: 12px; align-items: center; }
 .updatebar button { background: var(--paper); color: var(--ink); border-color: var(--paper); padding: 3px 10px; }
+
+/* brain view */
+.talkgrid > * { min-width: 0; }
+.brainpanel { grid-column: 2 / 4; grid-row: 1; max-height: none; }
+.talkgrid .panel.chat { grid-row: 1 / 5; }
+.talkgrid { grid-template-rows: auto repeat(3, minmax(300px, 38vh)); }
+.brainwrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.brainmain { flex: 2 1 380px; min-width: 0; }
+.emo { flex: 1 1 220px; min-width: 200px; }
+.emo h3 { font-size: 14px; margin: 0 0 2px; }
+.emo .bars { display: grid; grid-template-columns: max-content 1fr 38px; gap: 5px 8px; align-items: center; font-size: 13px; }
+.emo .bar { height: 9px; background: var(--paper); border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.emo .bar i { display: block; height: 100%; background: var(--a); transition: width .5s; }
+#brainSvg { width: 100%; height: auto; max-height: 52vh; display: block; }
+.cap { font-size: 12.5px; color: var(--muted); font-style: italic; margin: 2px 0 6px; }
+#brainSvg .outline { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+#brainSvg .rfill { fill: var(--a); fill-opacity: calc(var(--glow, 0) * 0.75); stroke: var(--rule); stroke-width: 1; transition: fill-opacity .6s; }
+#brainSvg .region { cursor: pointer; outline: none; transition: opacity .5s; }
+#brainSvg .region.lose .rfill { opacity: .4; }
+#brainSvg .region.win .rfill { stroke: var(--ink); stroke-width: 2; }
+#brainSvg .region:focus-visible .rfill, #brainSvg .region:hover .rfill { stroke: var(--exp); stroke-width: 3; }
+#brainSvg .rlabel { font: 600 13px var(--sans); fill: var(--ink); pointer-events: none; }
+#brainSvg .rscore { font: 12px var(--mono); fill: var(--ink); pointer-events: none; }
+#brainSvg .rboost { font: 10.5px var(--sans); fill: var(--muted); pointer-events: none; }
+#brainSvg .wire { stroke: var(--ink); stroke-width: 3; opacity: 0; stroke-dasharray: 6 5; transition: opacity .5s; }
+#brainSvg .wire.on { opacity: .85; animation: flow 1.2s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -22; } }
+#brainSvg .wsfill { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+#brainSvg .wsfill.lit { fill: color-mix(in srgb, var(--exp) 35%, var(--paper)); }
+#brainSvg .wslabel { font: 600 11px var(--sans); fill: var(--ink); }
+#brainSvg .voicering { fill: none; stroke: var(--muted); stroke-width: 2; }
+#brainSvg .voicedot { fill: var(--muted); }
+#brainSvg .voice.on .voicering { stroke: var(--b); animation: ring 1s ease-out infinite; transform-origin: 52px 235px; }
+#brainSvg .voice.on .voicedot { fill: var(--b); }
+@keyframes ring { from { transform: scale(1); opacity: 1; } to { transform: scale(1.9); opacity: .15; } }
+#brainSvg .region.pulse .rfill { fill-opacity: .5; animation: breathe 1s ease-in-out infinite; }
+@keyframes breathe { 50% { fill-opacity: .15; } }
+.braininfo { font-size: 13.5px; min-height: 4.6em; padding: 6px 10px; background: var(--paper); border-left: 3px solid var(--a); border-radius: 3px; }
+.braininfo .heard { color: var(--muted); font-style: italic; }
+.brainscrub { margin-top: 8px; }
+.brainscrub input { max-width: none; }
+@media (max-width: 1100px) {
+  .brainpanel { grid-column: auto; grid-row: auto; order: -1; }
+  .talkgrid .panel.chat { grid-row: auto; }
+  .talkgrid { grid-template-rows: none; }
+  .brainwrap { display: block; }
+  .emo { margin-top: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #brainSvg .wire.on, #brainSvg .voice.on .voicering, #brainSvg .region.pulse .rfill { animation: none; }
+  #brainSvg .rfill, #brainSvg .region, #brainSvg .wire, .emo .bar i { transition: none; }
+}

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { loadEnv } from './scripts/env.js';
 import { makeNodeLLM } from './src/agents/transport-node.js';
 import { rename } from 'node:fs/promises';
+import { sseFrame } from './src/talk/sse.js';
 import { makeTalkStore, talkTurn, talkAudit, talkSelfTest, talkReflect, needsReflection, freshTalkMemory } from './src/talk/session.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -14,7 +15,7 @@ const PORT = Number(process.env.PORT || 5173);
 const LIVE = Boolean(process.env.ANTHROPIC_API_KEY);
 const MODEL = process.env.MODEL || 'claude-sonnet-5-5';
 const llm = LIVE ? makeNodeLLM() : null;
-const VERSION = process.env.THRESHOLD_VERSION || 'dev';
+const VERSION = process.env.STEBULA_VERSION || 'dev';
 const DATA = path.join(ROOT, 'data');
 const talk = makeTalkStore(DATA);
 const NO_KEY = 'Talk needs a live model. Add ANTHROPIC_API_KEY to .env and restart. Scripted mocks cannot hold a conversation.';
@@ -58,6 +59,13 @@ http.createServer(async (req, res) => {
         if (!String(body.text || '').trim()) return send(res, 400, { error: 'Empty message.' });
         return send(res, 200, await talkTurn(talk, llm, agent, body.text));
       }
+      if (route === 'stream') { // same turn as /message, but each stage is sent as a server-sent event while it happens
+        if (!String(body.text || '').trim()) return send(res, 400, { error: 'Empty message.' });
+        res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' });
+        const emit = (stage, data) => res.write(sseFrame(stage, data));
+        try { await talkTurn(talk, llm, agent, body.text, emit); } catch (e) { emit('error', { error: e.message }); }
+        return res.end();
+      }
       if (route === 'audit') return send(res, 200, await talkAudit(talk, llm, agent));
       if (route === 'selftest') return send(res, 200, await talkSelfTest(talk, llm, agent, body.statement));
       if (route === 'reflect') return send(res, 200, await talkReflect(talk, llm, agent, body.trigger === 'return' ? 'return' : 'manual'));
@@ -72,4 +80,4 @@ http.createServer(async (req, res) => {
     if (e.code === 'ENOENT') return send(res, 404, 'Not found', 'text/plain');
     send(res, 500, { error: e.message });
   }
-}).listen(PORT, () => console.log(`THRESHOLD at http://localhost:${PORT}  (${LIVE ? `live mode available: ${MODEL}` : 'mock mode only: no API key in .env'})`));
+}).listen(PORT, () => console.log(`STEBULA at http://localhost:${PORT}  (${LIVE ? `live mode available: ${MODEL}` : 'mock mode only: no API key in .env'})`));

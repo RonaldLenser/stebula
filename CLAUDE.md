@@ -1,4 +1,4 @@
-# Working on Threshold (becoming Stebula)
+# Working on Stebula (formerly Threshold)
 
 Read this before changing anything. Then read knowledge/README.md and knowledge/02-core-principles.md.
 

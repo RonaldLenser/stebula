@@ -1,5 +1,5 @@
 {
-  "name": "threshold-lab",
+  "name": "stebula",
   "version": "0.3.0",
   "description": "Two agents, a hidden rule, and a record of whether talking and reflecting changes what they do next.",
   "type": "module",

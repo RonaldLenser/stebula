@@ -23,3 +23,4 @@ Read this before citing any result from this repo.
 19. **Self-prediction has an easy exploit.** If it always predicts and answers "unsure", it scores well while knowing little. The app shows the stance distribution so this is visible.
 20. **"Between sessions" means on return.** Reflection runs when you reopen Talk after 30 minutes. Nothing happens in the gap.
 21. **The scorecard grades analogs.** A prompt-level analog of an architectural property may not count on the theory it comes from.
+22. **The brain view is a diagram.** The five regions are software roles in prompts and code, placed on a brain shape for readability. Position and shape carry no meaning. Glow is the recorded workspace score; nothing is a scan of the model.

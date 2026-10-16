@@ -62,8 +62,8 @@ $('#counter').onclick = () => { S.queue.push({ kind: 'counterexample' }); status
 $('#sendNote').onclick = () => { const t = $('#note').value.trim(); if (!t) return; S.queue.push({ kind: 'note', text: t }); $('#note').value = ''; status('Note queued for the next round.'); };
 $('#export').onclick = () => {
   if (!S.events.length) return status('Nothing to export yet.');
-  const blob = new Blob([JSON.stringify({ format: 'threshold-run/1', exportedAt: new Date().toISOString(), events: S.events }, null, 1)], { type: 'application/json' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `threshold-run-${Date.now()}.json` });
+  const blob = new Blob([JSON.stringify({ format: 'stebula-run/1', exportedAt: new Date().toISOString(), events: S.events }, null, 1)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `stebula-run-${Date.now()}.json` });
   a.click(); URL.revokeObjectURL(a.href);
 };
 $('#load').onchange = async e => {
@@ -100,7 +100,7 @@ function render() {
   sc.value = S.cursor == null ? sc.max : S.cursor;
   $('#scrubInfo').textContent = S.events.length ? `event ${(S.cursor ?? S.events.length - 1) + 1} of ${S.events.length}` : '';
   const mock = runInfo(evs)?.agents.some(a => a.kind === 'mock');
-  document.title = mock ? 'Threshold (scripted mock)' : 'Threshold';
+  document.title = mock ? 'Stebula (scripted mock)' : 'Stebula';
   conversation(evs); map(evs); agents(evs); timeline(evs); compare(evs); reflection(evs);
 }
 

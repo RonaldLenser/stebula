@@ -35,6 +35,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeTalkStore, talkTurn, talkAudit, talkSelfTest, talkReflect } from '../src/talk/session.js';
 import { compete, updateAffect, freshAffect } from '../src/talk/workspace.js';
+import { emptyBrain, applyStage, brainFromMemory, signalBoosts, storedTurns, STAGES } from '../src/talk/brain.js';
+import { sseFrame, parseSse } from '../src/talk/sse.js';
 
 // workspace: affect must be able to change the winner
 const th = [
@@ -69,7 +71,22 @@ const stub = async ({ system, messages, user }) => {
   if (speakN === 2) return JSON.stringify({ reply: 'I definitely feel excited about this.', self_model: null, change_note: 'no change', claims: [] });
   return 'not json at all';
 };
-let r = await talkTurn(store, stub, 'A', 'What are you?');
+// streaming: every stage fires in order, carries recorded data, and replay from storage matches the live view
+const stages = [], sent = [];
+let liveBrain = emptyBrain();
+let r = await talkTurn(store, stub, 'A', 'What are you?', (stage, data) => { stages.push(stage); sent.push(sseFrame(stage, data)); liveBrain = applyStage(liveBrain, stage, JSON.parse(JSON.stringify(data))); });
+assert.deepEqual(stages, STAGES, 'stages arrive in the documented order');
+assert.equal(liveBrain.candidates.length, 5, 'all five thoughts are streamed');
+assert.deepEqual(liveBrain.winners, r.turn.monologue.candidates.filter(c => c.won).map(c => c.module));
+assert.equal(liveBrain.winners.length, 2, 'two winners are streamed');
+assert.equal(liveBrain.phase, 'done'); assert(liveBrain.selfModel, 'selfmodel stage fires when the model changed');
+assert.deepEqual(brainFromMemory(r.mem, 1), liveBrain, 'replaying a stored turn gives the same state as the live stream');
+assert.equal(brainFromMemory(r.mem, 99), null); assert.deepEqual(storedTurns(r.mem), [1]);
+const wire = sent.join(''), cut = Math.floor(wire.length / 2);
+const p1 = parseSse(wire.slice(0, cut)), p2 = parseSse(p1.rest + wire.slice(cut));
+assert.deepEqual([...p1.events, ...p2.events].map(e => e.stage), STAGES, 'SSE parses across chunk boundaries');
+assert.deepEqual(signalBoosts({ surprise: 1, conflict: 0.5, curiosity: 0 }).map(b => [b.signal, b.region, b.boost]), [['surprise', 'self-monitor', 0.4], ['conflict', 'evaluation', 0.2], ['curiosity', 'initiative', 0]]);
+console.log('stream and brain replay ok');
 assert.equal(r.mem.version, 1); assert.equal(r.turn.monologue.candidates.filter(c => c.won).length, 2);
 r = await talkTurn(store, stub, 'A', 'How do you feel?');
 assert(r.turn.flags.some(f => f.check === 'certain-experience-claim'));

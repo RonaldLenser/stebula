@@ -29,6 +29,8 @@ export function makeNodeLLM({
       throw new Error(`Anthropic API ${res.status}: ${text.slice(0, 300)}`);
     }
     const data = await res.json();
-    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    if (!text) console.log(`Model returned no text (stop_reason: ${data.stop_reason}).`);
+    return text;
   };
 }

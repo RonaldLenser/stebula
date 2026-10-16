@@ -47,7 +47,7 @@ export function compete(thoughts, affect, lastWinners = [], capacity = CAPACITY)
     const driver = Object.entries(AFFECT_DRIVES).find(([, mod]) => mod === m)?.[0];
     const affectBoost = driver ? r2(BOOST * affect[driver]) : 0;
     const overlap = lastWinners.length ? Math.max(...lastWinners.map(w => jaccard(w, t.text))) : 0;
-    const noveltyPenalty = r2(-NOVELTY * overlap);
+    const noveltyPenalty = r2(-NOVELTY * overlap) || 0; // `|| 0` turns -0 into 0 so stored and streamed values match
     return { module: m, text: String(t.text).slice(0, 400), base, affectBoost, driver: driver || null, noveltyPenalty, score: r2(base + affectBoost + noveltyPenalty) };
   });
   const ranked = [...scored].sort((a, b) => b.score - a.score || MODULES.indexOf(a.module) - MODULES.indexOf(b.module));

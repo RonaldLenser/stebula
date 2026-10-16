@@ -81,11 +81,14 @@ function applySelfModel(mem, proposed, note, trigger, now) {
   return true;
 }
 
-export async function talkTurn(store, llm, agent, text) {
+// `emit(stage, data)` is called as each stage finishes, so a caller can stream progress.
+// Stages: heard, affect, thoughts, workspace, speaking, selfmodel (only if changed), done.
+export async function talkTurn(store, llm, agent, text, emit = () => {}) {
   return store.locked(agent, async () => {
     const mem = await store.load(agent);
     const now = new Date().toISOString();
     const userText = str(text, 4000);
+    emit('heard', { turn: mem.turns + 1, text: userText });
 
     // 1. Affect update (code)
     const priorUser = mem.archive.filter(m => m.role === 'user').map(m => m.text).slice(-10);
@@ -94,6 +97,7 @@ export async function talkTurn(store, llm, agent, text) {
     const affectBefore = mem.affect;
     const { affect, causes } = updateAffect(mem.affect, userText, priorUser, recentMiss);
     mem.affect = affect;
+    emit('affect', { before: affectBefore, after: affect, causes });
 
     // 2. THINK: five candidate thoughts
     const thinkSys = thinkSystem(mem, affect);
@@ -104,6 +108,8 @@ export async function talkTurn(store, llm, agent, text) {
     // 3. Workspace competition (code)
     const candidates = compete(thoughts, affect, mem.lastWorkspace.map(t => t.text));
     const workspace = candidates.filter(t => t.won);
+    emit('thoughts', { candidates });
+    emit('workspace', { winners: workspace.map(({ module, text, score }) => ({ module, text, score })) });
 
     // 4. SPEAK: sees only the workspace
     const speakSys = speakSystem(mem, workspace);
@@ -125,12 +131,15 @@ export async function talkTurn(store, llm, agent, text) {
       claims: obj?.reply && Array.isArray(obj.claims) ? obj.claims.slice(0, 5).map(c => ({ text: str(c?.text, 300), kind: KINDS.includes(c?.kind) ? c.kind : 'hypothesis' })).filter(c => c.text) : [],
       selfModelChanged: false,
     };
+    emit('speaking', { reply: turn.reply });
+    const smBefore = mem.selfModel;
     turn.selfModelChanged = obj?.reply ? applySelfModel(mem, obj.self_model, turn.changeNote, userText, now) : false;
+    if (turn.selfModelChanged) emit('selfmodel', { before: smBefore, after: mem.selfModel, note: turn.changeNote });
     if (obj?.reply && obj.person_model) mem.personModel = str(obj.person_model, 500);
 
     const prevReply = [...mem.active].reverse().find(m => m.role === 'assistant')?.text;
     const flags = checkTalkTurn(turn, prevReply).map(f => ({ ...f, turn: mem.turns }));
-    if (!thinkObj || candidates.length < MODULES.length) flags.push({ check: 'thinking-incomplete', severity: 'warn', evidence: `${candidates.length} of ${MODULES.length} processes produced a usable thought`, note: 'The workspace competed over fewer thoughts than designed.', turn: mem.turns });
+    if (!thinkObj || candidates.length < MODULES.length) flags.push({ check: 'thinking-incomplete', severity: 'warn', evidence: `${candidates.length} of ${MODULES.length} processes produced a usable thought${thinkRaw ? '' : ' (the thinking call returned no text; see the server log for the stop reason)'}`, note: 'The workspace competed over fewer thoughts than designed.', turn: mem.turns });
     mem.flags.push(...flags);
     for (const c of turn.claims) if (c.kind === 'experiential' || c.kind === 'metaphor') mem.selfReports.push({ turn: mem.turns, at: now, ...c });
 
@@ -147,6 +156,7 @@ export async function talkTurn(store, llm, agent, text) {
       catch { /* keep everything if summarizing fails */ }
     }
     await store.save(mem);
+    emit('done', { turn: mem.turns });
     return { mem, turn: { ...turn, flags, monologue } };
   });
 }

@@ -1,4 +1,4 @@
-# Threshold (becoming Stebula)
+# Stebula (formerly Threshold)
 
 **Start here: [knowledge/README.md](knowledge/README.md)** holds everything known, decided, and planned for this project.
 
@@ -13,7 +13,7 @@ This tests a narrow, functional slice of the guiding hypothesis ("consciousness 
 ## What you see
 
 - **Conversation**: every turn, test, prediction, synthesis and decision, with the exact prompt and raw output one click away.
-- **Threshold map**: each hypothesis an agent states, colored by whether its predictions held, with revisions and recorded challenges.
+- **Hypothesis map**: each hypothesis an agent states, colored by whether its predictions held, with revisions and recorded challenges.
 - **Agent state**: persistent memory, self-model, lessons, model of the partner, and modeled affect (numbers computed from outcomes, labeled as such).
 - **Timeline**: revisions, failed predictions, interventions, memory writes and evaluator flags. Click to jump the replay there.
 - **Before and after**: measured results for episode 1 vs episode 2.
@@ -55,7 +55,7 @@ Fourteen indicator properties drawn from theories of consciousness (following Bu
 Requires Node 18 or newer and Git. No dependencies.
 
 ```bash
-gh repo clone RonaldLenser/threshold-lab && cd threshold-lab
+gh repo clone RonaldLenser/stebula && cd stebula
 npm test              # checks the plumbing with scripted mock agents
 npm start             # open http://localhost:5173
 ```

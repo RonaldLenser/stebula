@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Threshold: a lab notebook on dialogue, memory and self-models</title>
+<title>Stebula: talk to an AI and watch its processes work</title>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <div id="updateBar" class="updatebar" hidden role="status">A new version is running. <button id="reloadNow">Reload to use it</button></div>
 <header class="top">
   <div class="title">
-    <h1>Threshold</h1>
+    <h1>Stebula</h1>
     <p>An AI agent lab. Every belief it holds about itself is recorded, tested against what it does, and open to inspection.</p>
   </div>
   <nav class="views" aria-label="View">
@@ -52,7 +52,7 @@
   </section>
 
   <section class="panel" aria-labelledby="h-map">
-    <h2 id="h-map">Threshold map</h2>
+    <h2 id="h-map">Hypothesis map</h2>
     <p class="cap" id="mapCap"></p>
     <div class="scroll"><svg id="mapSvg" role="img" aria-label="Hypotheses held by each agent, and challenges between them"></svg></div>
   </section>
@@ -79,6 +79,28 @@
 </main>
 
 <main id="talkView" class="talkgrid" hidden>
+  <section class="panel brainpanel" aria-labelledby="h-brain">
+    <h2 id="h-brain">Brain view</h2>
+    <div class="brainwrap">
+      <div class="brainmain">
+        <svg id="brainSvg" role="group" aria-label="Map of Stebula's five thought processes and the Workspace"></svg>
+        <p class="cap">A map of Stebula's software processes, not a scan of the model.</p>
+        <div id="brainInfo" class="braininfo" aria-live="polite"></div>
+        <div class="scrub brainscrub">
+          <label for="turnScrub">Turn</label>
+          <input id="turnScrub" type="range" min="1" max="1" value="1" disabled>
+          <button id="scrubLive" class="small" disabled>Live</button>
+          <span id="scrubInfo2"></span>
+        </div>
+      </div>
+      <div class="emo">
+        <h3>Emotion signals</h3>
+        <p class="note">Modeled from the conversation. Not felt.</p>
+        <div id="emoBars" class="bars"></div>
+        <p id="emoNote" class="stat"></p>
+      </div>
+    </div>
+  </section>
   <section class="panel chat" aria-labelledby="h-talk">
     <div class="chathead">
       <h2 id="h-talk">Talk</h2>

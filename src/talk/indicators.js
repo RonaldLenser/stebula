@@ -20,7 +20,7 @@ export const INDICATORS = [
 
 export const SCORECARD_CAVEATS = [
   'These indicators come from theories that disagree with each other. Satisfying some does not establish consciousness, and the original authors say as much.',
-  'Most indicators concern computational architecture. Threshold implements analogs at the level of prompts and code around a model, which may not count at all on the theories in question.',
+  'Most indicators concern computational architecture. Stebula implements analogs at the level of prompts and code around a model, which may not count at all on the theories in question.',
   'Some theories, such as integrated information theory, say behavior and software organization are irrelevant to consciousness. On those views this scorecard measures nothing.',
   'The list and wording are a paraphrase written from memory. Verify against Butlin, Long et al. (2023) before citing.',
 ];

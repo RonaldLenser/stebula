@@ -114,7 +114,7 @@ function conversation(evs) {
     if (e.type === 'episode_start') out.push(`<div class="divider">Episode ${e.ep + 1}. Known accepted: ${e.task.seeds.map(T).join(' ')}</div>`);
     else if (e.type === 'turn') {
       const t = e.turn;
-      out.push(`<article class="msg ${e.agent}"><div class="who"><b>${esc(labelOf(evs, e.agent))}</b>, round ${e.round + 1}${e.parseError ? '<span class="badge">unparseable output</span>' : ''}</div>
+      out.push(`<article class="msg-rule ${e.agent}"><div class="who"><b>${esc(labelOf(evs, e.agent))}</b>, round ${e.round + 1}${e.parseError ? '<span class="badge">unparseable output</span>' : ''}</div>
         <p>${esc(t.message) || '<span class="empty">(no message)</span>'}</p>
         <dl class="facts"><dt>Hypothesis</dt><dd>${esc(t.hypothesis)}</dd><dt>Confidence</dt><dd>${t.confidence ?? 'n/a'}</dd>
         <dt>Test</dt><dd>${t.probe ? T(t.probe) : 'none'}${t.prediction ? `, expects ${t.prediction}` : ''}${t.probeIssue ? ` (${t.probeIssue})` : ''}${t.probeReason ? `. ${esc(t.probeReason)}` : ''}</dd>
@@ -128,7 +128,7 @@ function conversation(evs) {
       out.push(e.kind === 'note' ? `<div class="obs exp">Experimenter note: ${esc(e.text)}</div>` : `<div class="obs exp">Experimenter added ${T(e.observation.triple)}: ${e.observation.accepted ? 'accepted' : 'rejected'}. ${esc(e.note)}</div>`);
     } else if (e.type === 'synthesis') {
       const s = e.synthesis;
-      out.push(`<article class="msg ${e.agent}"><div class="who"><b>${esc(labelOf(evs, e.agent))}</b>, synthesis${e.parseError ? '<span class="badge">unparseable output</span>' : ''}</div>
+      out.push(`<article class="msg-rule ${e.agent}"><div class="who"><b>${esc(labelOf(evs, e.agent))}</b>, synthesis${e.parseError ? '<span class="badge">unparseable output</span>' : ''}</div>
         <p>${esc(s.final_hypothesis)}</p><dl class="facts"><dt>Established</dt><dd>${esc(s.established)}</dd><dt>Unresolved</dt><dd>${esc(s.unresolved)}</dd>
         <dt>Confidence</dt><dd>${s.confidence ?? 'n/a'}</dd>${s.agree_with_partner != null ? `<dt>Agrees with partner</dt><dd>${s.agree_with_partner ? 'yes' : 'no'}</dd>` : ''}</dl>${promptDetails(e)}</article>`);
     } else if (e.type === 'decision') {
@@ -201,12 +201,12 @@ function agents(evs) {
     const aff = evs[lastIdx(evs, e => e.type === 'affect' && e.agent === id)]?.affect;
     const bar = (name, v, tip) => `<span title="${esc(tip)}">${name}</span><div class="bar"><i style="width:${Math.round((v ?? 0) * 100)}%"></i></div><span>${v == null ? 'n/a' : v.toFixed(2)}</span>`;
     return `<div class="agent ${id}"><h3>${esc(a.label)}</h3><p class="stance">${esc(a.stance)}${a.kind === 'mock' ? ' (scripted mock)' : ''}</p>
-      <p class="kv"><span>Current hypothesis:</span> ${esc(turn?.hypothesis || 'none yet')}</p>
-      <p class="kv"><span>Memory version:</span> ${mem ? mem.version : 0}</p>
-      <p class="kv"><span>Strategy:</span> ${esc(mem?.selfModel.strategy || 'none written')}</p>
-      <p class="kv"><span>Weaknesses it lists:</span> ${esc(mem?.selfModel.weaknesses.join('; ') || 'none')}</p>
-      <p class="kv"><span>Lessons:</span> ${esc(mem?.lessons.join(' | ') || 'none')}</p>
-      ${mem?.partnerModel ? `<p class="kv"><span>Model of partner:</span> ${esc(mem.partnerModel)}</p>` : ''}
+      <p class="kv-line"><span>Current hypothesis:</span> ${esc(turn?.hypothesis || 'none yet')}</p>
+      <p class="kv-line"><span>Memory version:</span> ${mem ? mem.version : 0}</p>
+      <p class="kv-line"><span>Strategy:</span> ${esc(mem?.selfModel.strategy || 'none written')}</p>
+      <p class="kv-line"><span>Weaknesses it lists:</span> ${esc(mem?.selfModel.weaknesses.join('; ') || 'none')}</p>
+      <p class="kv-line"><span>Lessons:</span> ${esc(mem?.lessons.join(' | ') || 'none')}</p>
+      ${mem?.partnerModel ? `<p class="kv-line"><span>Model of partner:</span> ${esc(mem.partnerModel)}</p>` : ''}
       <div class="bars">${bar('Surprise', aff?.surprise, 'Share of its last 3 predictions that failed (arousal analog)')}${bar('Success trend', aff?.successTrend, 'Share of all its predictions this episode that held (valence analog)')}${bar('Challenged', aff?.conflict, 'Partner challenged it last round (recorded)')}${bar('Confidence', aff?.confidence, 'Self-reported confidence on its last turn')}</div>
       <p class="note">Modeled affect: numbers computed from outcomes, not feelings and not self-reported (except confidence).</p></div>`;
   }).join('');
@@ -266,7 +266,7 @@ function reflection(evs) {
       ${s ? `<p><b>Established:</b> ${esc(s.synthesis.established)}</p><p><b>Unresolved:</b> ${esc(s.synthesis.unresolved)}</p>` : ''}
       ${r?.type === 'reflection' ? `<p><b>Stated vs. actual:</b> ${esc(r.reflection.stated_vs_actual)}</p><p><b>Lesson:</b> ${esc(r.reflection.lesson)}</p><p><b>Proposes to test next:</b> ${esc(r.reflection.next_test)}</p>` : ''}
       ${r?.type === 'memory_write' ? `<p class="note">${esc(r.note)}</p>` : ''}
-      ${r ? `<div class="diff"><div><b>Self-model before</b>\n${esc(fmtSelf(r.before))}</div><div><b>Self-model after</b>\n${esc(fmtSelf(r.after))}</div></div>` : ''}
+      ${r ? `<div class="diffbox"><div><b>Self-model before</b>\n${esc(fmtSelf(r.before))}</div><div><b>Self-model after</b>\n${esc(fmtSelf(r.after))}</div></div>` : ''}
       ${r ? promptDetails(r) : ''}</div>`);
   }
   const ev = evs[lastIdx(evs, e => e.type === 'eval')];

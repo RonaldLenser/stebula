@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from './scripts/env.js';
 import { makeNodeLLM } from './src/agents/transport-node.js';
+import { makeFakeLLM } from './src/dev/fake-llm.js';
 import { sseFrame } from './src/talk/sse.js';
 import { digestText, runBaseline } from './src/talk/digest.js';
 import { makeRecorder } from './src/lib/records.js';
@@ -22,9 +23,11 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(ROOT, '.env'));
 const PORT = Number(process.env.PORT || 5173);
 const HOST = process.env.HOST || '127.0.0.1';
-const LIVE = Boolean(process.env.ANTHROPIC_API_KEY);
-const MODEL = process.env.MODEL || 'claude-sonnet-5-5';
-const llm = LIVE ? makeNodeLLM() : null;
+// STEBULA_FAKE_LLM=1 swaps in a scripted stand-in for the model so the interface can be tested without a key. It is labelled everywhere.
+const FAKE = process.env.STEBULA_FAKE_LLM === '1';
+const LIVE = FAKE || Boolean(process.env.ANTHROPIC_API_KEY);
+const MODEL = FAKE ? 'scripted-test-model' : process.env.MODEL || 'claude-sonnet-5-5';
+const llm = FAKE ? makeFakeLLM() : LIVE ? makeNodeLLM() : null;
 const VERSION = process.env.STEBULA_VERSION || 'dev';
 const REVISION = codeRevision(ROOT);
 const DATA = process.env.STEBULA_DATA || path.join(ROOT, 'data');
@@ -65,7 +68,7 @@ const server = http.createServer(async (req, res) => {
     const isApi = url.pathname.startsWith('/api/');
     const authorize = () => { const d = access.deny(req); if (d) { send(res, d.status, { error: d.message, kind: 'access' }); return false; } return true; };
 
-    if (url.pathname === '/api/config') return send(res, 200, { live: LIVE && !access.publicMode, model: LIVE ? MODEL : null, public: access.publicMode, tokenRequired: access.tokenRequired, loopback: access.loopback });
+    if (url.pathname === '/api/config') return send(res, 200, { live: LIVE && !access.publicMode, model: LIVE ? MODEL : null, fake: FAKE, public: access.publicMode, tokenRequired: access.tokenRequired, loopback: access.loopback });
     if (url.pathname === '/api/version') return send(res, 200, { version: VERSION, revision: REVISION });
     if (url.pathname === '/api/health') return send(res, 200, { ok: true, recorder: access.publicMode ? null : recorder.health(), active: jobs.count() });
     if (url.pathname === '/api/example') { try { return send(res, 200, await readFile(path.join(ROOT, 'examples', 'observe-example.json'))); } catch { return send(res, 404, { error: 'No recorded example is bundled.' }); } }

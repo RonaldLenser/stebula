@@ -9,7 +9,8 @@ import { createFinding, testFinding, reviseFinding, generateHypotheses, verifyLo
 import { catalog, aggregateStats } from './metrics.js';
 import { HUMAN_AREAS } from './human.js';
 import { runExperiment, estimateCalls, CONDITIONS } from './experiments.js';
-import { runLessonExperiment, estimateLessonCalls, LESSON_CONDITIONS, DEFAULT_LESSON_CONDITIONS, BudgetError } from './lesson.js';
+import { runLessonExperiment, BudgetError } from './lesson.js';
+import { estimateLessonCalls, LESSON_CONDITIONS, DEFAULT_LESSON_CONDITIONS } from './lesson-text.js';
 import { makeLessonDouble } from './lesson-double.js';
 import { sseFrame } from '../talk/sse.js';
 import { errorInfo } from '../lib/http-errors.js';
@@ -71,6 +72,7 @@ export function makeResearchRoutes({ dataDir, talk, recorder, llm, live, send, r
         return true;
       }
       if (p === '/api/experiment/runs' && req.method === 'GET') { send(res, 200, { runs: await listRuns('isolation') }); return true; }
+      if (p === '/api/experiment/run' && req.method === 'GET') { const r = await readRun(url.searchParams.get('id')); send(res, r ? 200 : 404, r || { error: 'No such run.' }); return true; }
       if (p === '/api/lesson/runs' && req.method === 'GET') { send(res, 200, { runs: await listRuns('lesson') }); return true; }
       if (p === '/api/lesson/run' && req.method === 'GET') {
         const r = await readRun(url.searchParams.get('id'));

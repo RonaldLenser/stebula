@@ -3,237 +3,237 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stebula: talk to an AI and watch its processes work</title>
+<title>Stebula: watch how an AI's memory shapes its answers</title>
+<meta name="description" content="A research instrument for how an AI agent's stored memory, self-description and decisions interact. Every view comes from recorded state.">
+<script>
+// Set the colour theme before first paint so there is no flash. "auto" follows the system.
+(function () {
+  var pref = 'auto'; try { pref = localStorage.getItem('stebula.theme') || 'auto'; } catch (e) {}
+  var dark = pref === 'dark' || (pref === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+})();
+</script>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<div id="updateBar" class="updatebar" hidden role="status">A new version is running. <button id="reloadNow">Reload to use it</button></div>
+<a class="skip" href="#main">Skip to content</a>
+<div id="updateBar" class="updatebar" hidden role="status">A new version is running. <button id="reloadNow" class="btn small">Reload to use it</button></div>
+
 <header class="top">
-  <div class="title">
+  <div class="brand">
     <h1>Stebula</h1>
-    <p>An AI agent lab. Every belief it holds about itself is recorded, tested against what it does, and open to inspection.</p>
+    <p class="tag">Watch how an AI's memory shapes what it says and does.</p>
   </div>
-  <nav class="views" aria-label="View">
-    <button id="viewExp" class="tab" aria-pressed="true">Experiment</button>
-    <button id="viewTalk" class="tab" aria-pressed="false">Talk</button>
-    <button id="viewGrowth" class="tab" aria-pressed="false">Growth</button>
-    <button id="viewCompare" class="tab" aria-pressed="false">Compare</button>
-    <button id="viewFindings" class="tab" aria-pressed="false">Findings</button>
-    <button id="viewScore" class="tab" aria-pressed="false">Scorecard</button>
+  <nav class="views" aria-label="Primary">
+    <button id="viewObserve" class="tab" aria-pressed="true">Observe</button>
+    <button id="viewExperiments" class="tab" aria-pressed="false">Experiments</button>
+    <button id="viewResearch" class="tab" aria-pressed="false">Research</button>
   </nav>
-  <div id="expControls">
-  <div class="controls" role="group" aria-label="Run controls">
-    <label>Agents <select id="mode"><option value="mock">Scripted mock (no API key)</option><option value="live">Live model</option></select></label>
-    <label>Condition <select id="cond"></select></label>
-    <label>Seed <input id="seed" type="number" value="1" min="1"></label>
-    <label>Rounds <input id="rounds" type="number" value="4" min="1" max="8"></label>
-    <button id="run" class="primary">Run</button>
-    <button id="step">Step one round</button>
-    <button id="reset">Reset</button>
-    <button id="export">Export run</button>
-    <label class="file">Load run <input id="load" type="file" accept="application/json"></label>
-  </div>
-  <div class="controls inject" role="group" aria-label="Interventions">
-    <button id="counter" title="Adds a true example that fits the hidden rule but not the narrow decoy">Inject a counterexample</button>
-    <input id="note" type="text" placeholder="Add an experimenter note, constraint or question">
-    <button id="sendNote">Add note</button>
-    <span id="status" role="status">Ready.</span>
-  </div>
-  <div class="scrub">
-    <label for="scrubber">Replay</label>
-    <input id="scrubber" type="range" min="0" max="0" value="0" disabled>
-    <button id="play" disabled>Play from start</button>
-    <span id="scrubInfo"></span>
-  </div>
+  <div class="status-area">
+    <span id="modelChip" class="chip" title="Which model answers, if any"></span>
+    <span id="recChip" class="chip bad" hidden title="The research record had a write failure. Exports may be incomplete.">Record incomplete</span>
+    <button id="themeBtn" class="btn ghost small" aria-label="Colour theme" title="Colour theme: auto, light, dark">Theme: auto</button>
   </div>
 </header>
 
-<main id="expView" class="grid">
-  <section id="conversation" class="panel tall" aria-labelledby="h-conv">
-    <h2 id="h-conv">Conversation</h2>
-    <div id="convBody" class="scroll"></div>
-  </section>
-
-  <section class="panel" aria-labelledby="h-map">
-    <h2 id="h-map">Hypothesis map</h2>
-    <p class="cap" id="mapCap"></p>
-    <div class="scroll"><svg id="mapSvg" role="img" aria-label="Hypotheses held by each agent, and challenges between them"></svg></div>
-  </section>
-
-  <section class="panel" aria-labelledby="h-agents">
-    <h2 id="h-agents">Agent state</h2>
-    <div id="agentsBody" class="scroll"></div>
-  </section>
-
-  <section class="panel" aria-labelledby="h-time">
-    <h2 id="h-time">Timeline of changes</h2>
-    <ol id="timeBody" class="scroll timeline"></ol>
-  </section>
-
-  <section class="panel" aria-labelledby="h-cmp">
-    <h2 id="h-cmp">Before and after</h2>
-    <div id="cmpBody" class="scroll"></div>
-  </section>
-
-  <section class="panel wide" aria-labelledby="h-refl">
-    <h2 id="h-refl">Reflection and checks</h2>
-    <div id="reflBody" class="scroll"></div>
-  </section>
-</main>
-
-<main id="talkView" class="talkgrid" hidden>
-  <section class="panel brainpanel" aria-labelledby="h-brain">
-    <h2 id="h-brain">Brain view</h2>
-    <div class="brainwrap">
-      <div class="brainmain">
-        <svg id="brainSvg" role="group" aria-label="Map of Stebula's five thought processes and the Workspace"></svg>
-        <p class="cap">A map of Stebula's software processes, not a scan of the model.</p>
-        <div id="brainInfo" class="braininfo" aria-live="polite"></div>
-        <div class="scrub brainscrub">
-          <label for="turnScrub">Turn</label>
-          <input id="turnScrub" type="range" min="1" max="1" value="1" disabled>
-          <button id="scrubLive" class="small" disabled>Live</button>
-          <span id="scrubInfo2"></span>
+<main id="main">
+<!-- ===================== OBSERVE ===================== -->
+<section id="observeView" class="observe" aria-label="Observe">
+  <div class="convo">
+    <div class="convo-bar">
+      <div class="field inline"><label for="agentPick">Agent</label>
+        <select id="agentPick"><option value="A">A: empiricist</option><option value="B">B: analogist</option></select></div>
+      <label class="check" title="Off: this turn runs without any stored memory, so you can see what memory changes."><input type="checkbox" id="memoryOn" checked> Use stored memory</label>
+      <details class="menu" id="moreMenu"><summary class="btn ghost small">More</summary>
+        <div class="menu-list" role="group" aria-label="More actions">
+          <button id="actReflect" class="btn ghost small">Ask it to reflect on the record</button>
+          <button id="actAudit" class="btn ghost small">Audit recent turns</button>
+          <button id="actExport" class="btn ghost small">Download memory file</button>
+          <button id="actReset" class="btn ghost small danger">Reset memory (keeps a backup)</button>
         </div>
+      </details>
+      <button id="inspectBtn" class="btn small inspect-toggle" aria-expanded="false" aria-controls="inspector">Inspect</button>
+    </div>
+    <div id="banner" class="banner" hidden></div>
+    <ol id="stages" class="stages" aria-label="Stages of this turn"></ol>
+    <div id="replayBar" class="replaybar" hidden>
+      <label for="turnScrub">Turn</label>
+      <input id="turnScrub" type="range" min="1" max="1" value="1" disabled>
+      <button id="turnPrev" class="btn ghost small" aria-label="Previous turn">Previous</button>
+      <button id="turnNext" class="btn ghost small" aria-label="Next turn">Next</button>
+      <button id="turnLatest" class="btn small">Back to latest</button>
+    </div>
+    <div id="chatLog" class="chatlog" aria-live="polite"></div>
+    <div id="errorBox" class="alert" role="alert" hidden></div>
+    <form id="composer" class="composer" autocomplete="off">
+      <div class="field grow"><label for="talkInput">Your message</label>
+        <textarea id="talkInput" rows="2" placeholder="Enter sends. Shift+Enter adds a line."></textarea></div>
+      <div class="composer-btns">
+        <button id="talkSend" class="btn primary" type="submit">Send</button>
+        <button id="talkStop" class="btn danger" type="button" hidden>Stop</button>
+        <button id="mic" class="btn" type="button" aria-pressed="false" title="Speak, then pause. It sends when you stop talking.">Speak</button>
       </div>
-      <div class="emo">
-        <h3>Emotion signals</h3>
-        <p class="note">Modeled from the conversation. Not felt.</p>
-        <div id="emoBars" class="bars"></div>
-        <p id="emoNote" class="stat"></p>
-      </div>
-    </div>
-  </section>
-  <section class="panel chat" aria-labelledby="h-talk">
-    <div class="chathead">
-      <h2 id="h-talk">Talk</h2>
-      <label>With <select id="talkAgent"><option value="A">Agent A (empiricist)</option><option value="B">Agent B (analogist)</option></select></label>
-      <button id="audit" title="A separate model call reviews recent turns for contradictions, sycophancy and overclaiming">Run audit</button>
-      <button id="talkExport">Export memory</button>
-      <button id="talkReset">Reset memory</button>
-    </div>
-    <p class="note" id="talkNote"></p>
-    <div id="chatLog" class="scroll" aria-live="polite"></div>
-    <div class="compose">
-      <button id="mic" class="mic" aria-pressed="false" title="Click, speak, then pause. It sends when you stop talking.">Speak</button>
-      <textarea id="talkInput" rows="3" placeholder="Type, or press Speak and talk. Enter sends, Shift+Enter adds a line."></textarea>
-      <button id="talkSend" class="primary">Send</button>
-    </div>
-    <div class="voicebar">
-      <label><input type="checkbox" id="readAloud" checked> Read replies aloud</label>
-      <label><input type="checkbox" id="handsFree"> Hands-free (listens again after it answers)</label>
-      <label>Voice <select id="voicePick"></select></label>
+    </form>
+    <details class="voice"><summary>Voice options</summary>
+      <label class="check"><input type="checkbox" id="readAloud"> Read replies aloud</label>
+      <label class="check"><input type="checkbox" id="handsFree"> Hands-free: listen again after it answers</label>
+      <div class="field inline"><label for="voicePick">Voice</label><select id="voicePick"></select></div>
       <span id="voiceNote" class="note"></span>
-    </div>
-  </section>
-  <section class="panel" aria-labelledby="h-self"><h2 id="h-self">Self-model now</h2><div id="tSelf" class="scroll"></div></section>
-  <section class="panel" aria-labelledby="h-attn"><h2 id="h-attn">Attention and affect</h2><div id="tAttn" class="scroll"></div></section>
-  <section class="panel" aria-labelledby="h-know">
-    <h2 id="h-know">Does it know itself?</h2>
-    <div class="selftest">
-      <input id="stmt" type="text" placeholder="Statement to test, or leave blank for one from the bank">
-      <button id="runTest">Run self-prediction test</button>
-    </div>
-    <div id="tKnow" class="scroll"></div>
-  </section>
-  <section class="panel" aria-labelledby="h-revs">
-    <h2 id="h-revs">How it changed</h2>
-    <button id="reflectNow" class="small" title="Asks it to review the recent record and revise its self-model">Reflect now</button>
-    <ol id="tRevs" class="scroll timeline"></ol>
-  </section>
-  <section class="panel" aria-labelledby="h-reports"><h2 id="h-reports">Self-reports and metaphors</h2><div id="tReports" class="scroll"></div></section>
-  <section class="panel" aria-labelledby="h-checks"><h2 id="h-checks">Checks and audits</h2><div id="tChecks" class="scroll"></div></section>
-  <section class="panel digestpanel" aria-labelledby="h-digest">
-    <h2 id="h-digest">Read to Stebula</h2>
-    <p class="note">It reads in passages of about 200 words. Each passage runs through the brain view, becomes a memory, and may add evidence to its personality model. Reading goes to whichever agent is chosen under Talk.</p>
-    <div class="digestform">
-      <input id="dTitle" type="text" placeholder="Title of what you are reading">
-      <input id="dSource" type="text" placeholder="Source (author, link, or where it came from)">
-      <textarea id="dText" rows="5" placeholder="Paste text, press Speak the text, or upload a .txt file."></textarea>
-      <div class="digestbtns">
-        <button id="dMic" aria-pressed="false">Speak the text</button>
-        <label class="file">.txt file <input id="dFile" type="file" accept=".txt,text/plain"></label>
-        <button id="dRead" class="primary">Read it</button>
-        <span id="dStatus" class="note" role="status"></span>
-      </div>
-    </div>
-    <div id="dLog" class="scroll"></div>
-  </section>
-</main>
+    </details>
+  </div>
 
-<main id="growthView" class="growthview" hidden>
-  <section class="panel">
-    <h2>Growth</h2>
-    <p class="cap">What grows is Stebula's memory file. The model underneath does not change.</p>
-    <div class="growthgrid">
-      <div class="growthmain">
-        <svg id="growthSvg" role="img" aria-label="Network of sources, evidence events, and the traits, motives and beliefs they built"></svg>
-        <div class="scrub"><label for="growthSlider">Replay formation</label><input id="growthSlider" type="range" min="0" max="0" value="0" disabled><span id="growthStep"></span></div>
-        <p class="note">Left: where it read or talked. Middle: evidence events. Right: traits (teal), motives (gold), beliefs (purple), sized by strength. Green lines support, red dashed lines contradict.</p>
-      </div>
-      <div class="growthside">
-        <p class="note"><b>Traits are evidence-scored patterns, not proof of a personality.</b></p>
-        <div id="traitList"></div>
-        <div id="provenance"></div>
-      </div>
+  <aside id="inspector" class="inspector" aria-label="Inspector">
+    <div id="inspHead" class="insp-head"></div>
+    <div class="tablist" role="tablist" aria-label="Inspector sections">
+      <button role="tab" id="tab-process" aria-controls="panel-inspector" aria-selected="true" data-tab="process">Process</button>
+      <button role="tab" id="tab-changes" aria-controls="panel-inspector" aria-selected="false" data-tab="changes">Changes</button>
+      <button role="tab" id="tab-memory" aria-controls="panel-inspector" aria-selected="false" data-tab="memory">Memory</button>
+      <button role="tab" id="tab-checks" aria-controls="panel-inspector" aria-selected="false" data-tab="checks">Checks</button>
+      <button role="tab" id="tab-raw" aria-controls="panel-inspector" aria-selected="false" data-tab="raw">Raw</button>
     </div>
-  </section>
-</main>
+    <div id="panel-inspector" class="insp-body" role="tabpanel" tabindex="0" aria-live="polite"></div>
+  </aside>
+</section>
 
-<main id="compareView" class="compareview" hidden>
-  <section class="panel">
-    <h2>Compare</h2>
-    <p class="lede">Do two agents that read different things end up with different personalities? An empty-memory copy answers the same five questions, so traits that come from the base model show up in every column.</p>
+<!-- ===================== EXPERIMENTS ===================== -->
+<section id="experimentsView" class="page" hidden aria-label="Experiments">
+  <div class="subnav tablist" role="tablist" aria-label="Experiments">
+    <button role="tab" aria-selected="true" data-sub="lesson">Stored lesson</button>
+    <button role="tab" aria-selected="false" data-sub="isolation">Isolation</button>
+    <button role="tab" aria-selected="false" data-sub="compare">Compare agents</button>
+    <button role="tab" aria-selected="false" data-sub="rules">Two-agent rule runs</button>
+  </div>
+
+  <div id="sub-lesson" class="subpane">
+    <h2>Does a stored lesson change the agent's next decision on a new problem?</h2>
+    <p class="lede">Each trial starts from a fresh agent with the same instructions. Only one thing differs: the single lesson in its stored memory. The tasks are the same for every condition, the prediction is recorded before the outcome, and the right answer is held back until scoring.</p>
+    <div id="lessonDesign"></div>
+    <form id="lessonForm" class="runform" autocomplete="off">
+      <div class="field"><label for="lMode">Who answers</label>
+        <select id="lMode"><option value="scripted">Scripted double (no model; tests the pipeline only)</option><option value="live">Live model (costs credit)</option></select></div>
+      <div class="field"><label for="lTasks">Tasks</label><input id="lTasks" type="number" value="8" min="1" max="60"></div>
+      <div class="field"><label for="lSeed">Seed</label><input id="lSeed" type="number" value="1" min="1"></div>
+      <fieldset class="conds"><legend>Conditions</legend>
+        <label class="check"><input type="checkbox" name="lc" value="relevant" checked> relevant lesson</label>
+        <label class="check"><input type="checkbox" name="lc" value="none" checked> no lesson</label>
+        <label class="check"><input type="checkbox" name="lc" value="irrelevant" checked> irrelevant lesson</label>
+        <label class="check"><input type="checkbox" name="lc" value="shuffled"> shuffled lesson</label>
+      </fieldset>
+      <div class="field" id="lBudgetField"><label for="lBudget">Call budget (live only)</label><input id="lBudget" type="number" min="1" placeholder="required"></div>
+      <div class="runbtns">
+        <button id="lRun" class="btn primary" type="submit">Run</button>
+        <button id="lStop" class="btn danger" type="button" hidden>Stop</button>
+      </div>
+      <p id="lEstimate" class="note full"></p>
+    </form>
+    <div id="lProgress" class="note" role="status"></div>
+    <div id="lError" class="alert" role="alert" hidden></div>
+    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="lRunPick">Run</label><select id="lRunPick"></select></div></div>
+    <div id="lessonResults"></div>
+  </div>
+
+  <div id="sub-isolation" class="subpane" hidden>
+    <h2>Does what an agent receives change the traits it expresses?</h2>
+    <p class="lede">Four agents start identical and differ only in input: reading only, talking only, both, or nothing. At fixed steps each answers the same five questions and takes the same two self-prediction tests. The tests run on a copy of its memory, so they never change the agent being assessed. The prediction and protocol are written down before the first model call.</p>
+    <form id="isoForm" class="runform" autocomplete="off">
+      <fieldset class="conds"><legend>Conditions</legend>
+        <label class="check"><input type="checkbox" name="ic" value="isolated" checked> isolated: reads only</label>
+        <label class="check"><input type="checkbox" name="ic" value="social" checked> social: converses only</label>
+        <label class="check"><input type="checkbox" name="ic" value="mixed" checked> mixed: both</label>
+        <label class="check"><input type="checkbox" name="ic" value="baseline" checked> baseline: nothing</label>
+      </fieldset>
+      <div class="field"><label for="iSteps">Steps</label><input id="iSteps" type="number" value="6" min="1" max="20"></div>
+      <div class="field"><label for="iEvery">Check every</label><input id="iEvery" type="number" value="3" min="1" max="10"></div>
+      <label class="check"><input type="checkbox" id="iMemory" checked> Give agents their stored memory at checkpoints</label>
+      <div class="field"><label for="iBudget">Call budget</label><input id="iBudget" type="number" min="1"></div>
+      <div class="runbtns"><button id="iRun" class="btn primary" type="submit">Run (live model)</button><button id="iStop" class="btn danger" type="button" hidden>Stop</button></div>
+      <p id="iEstimate" class="note full"></p>
+    </form>
+    <div id="iProgress" class="note" role="status"></div>
+    <div id="iError" class="alert" role="alert" hidden></div>
+    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="iRunPick">Run</label><select id="iRunPick"></select></div></div>
+    <div id="isoResults"></div>
+  </div>
+
+  <div id="sub-compare" class="subpane" hidden>
+    <h2>Do agents that read different things end up different?</h2>
+    <p class="lede">Agent A and Agent B side by side, plus an empty-memory copy that answers the same five questions. Traits that also appear in the copy likely come from the base model, not from anything read.</p>
     <div id="cmpControls" class="controls"></div>
     <div id="cmpGrid" class="cmpgrid"></div>
     <div id="cmpAnswers"></div>
-    <p class="note">Matching is by trait name and kind with loose word overlap, so near-synonyms can be missed. One run is an anecdote.</p>
-  </section>
-</main>
+    <p class="note">Matching uses trait names with loose word overlap, so near-synonyms can be missed. One run is an anecdote.</p>
+  </div>
 
-<main id="findingsView" class="findingsview" hidden>
-  <section class="panel">
+  <div id="sub-rules" class="subpane" hidden>
+    <h2>Two agents and a hidden rule</h2>
+    <p class="lede">The original experiment: two agents test a hidden number rule, talk, reflect, and are scored by code against the true rule. Scripted mock agents need no key, and their improvement is built in, so mock results test the plumbing only.</p>
+    <div id="expControls">
+      <div class="controls" role="group" aria-label="Run controls">
+        <div class="field"><label for="mode">Agents</label><select id="mode"><option value="mock">Scripted mock (no API key)</option><option value="live">Live model</option></select></div>
+        <div class="field"><label for="cond">Condition</label><select id="cond"></select></div>
+        <div class="field"><label for="seed">Seed</label><input id="seed" type="number" value="1" min="1"></div>
+        <div class="field"><label for="rounds">Rounds</label><input id="rounds" type="number" value="4" min="1" max="8"></div>
+        <button id="run" class="btn primary">Run</button>
+        <button id="step" class="btn">Step one round</button>
+        <button id="reset" class="btn">Reset</button>
+        <button id="export" class="btn">Export run</button>
+        <div class="field"><label for="load">Load run</label><input id="load" type="file" accept="application/json"></div>
+      </div>
+      <div class="controls" role="group" aria-label="Interventions">
+        <button id="counter" class="btn" title="Adds a true example that fits the hidden rule but not the narrow decoy">Inject a counterexample</button>
+        <div class="field grow"><label for="note">Experimenter note</label><input id="note" type="text" placeholder="A constraint or question"></div>
+        <button id="sendNote" class="btn">Add note</button>
+        <span id="status" role="status"></span>
+      </div>
+      <div class="scrub"><label for="scrubber">Replay</label><input id="scrubber" type="range" min="0" max="0" value="0" disabled><button id="play" class="btn small" disabled>Play from start</button><span id="scrubInfo"></span></div>
+    </div>
+    <div class="rulegrid">
+      <section id="conversation" class="rpanel tall"><h3>Conversation</h3><div id="convBody" class="rscroll"></div></section>
+      <section class="rpanel"><h3>Hypothesis map</h3><p class="cap" id="mapCap"></p><div class="rscroll"><svg id="mapSvg" role="img" aria-label="Hypotheses held by each agent, and challenges between them"></svg></div></section>
+      <section class="rpanel"><h3>Agent state</h3><div id="agentsBody" class="rscroll"></div></section>
+      <section class="rpanel"><h3>Timeline of changes</h3><ol id="timeBody" class="rscroll timeline"></ol></section>
+      <section class="rpanel"><h3>Before and after</h3><div id="cmpBody" class="rscroll"></div></section>
+      <section class="rpanel wide"><h3>Reflection and checks</h3><div id="reflBody" class="rscroll"></div></section>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RESEARCH ===================== -->
+<section id="researchView" class="page" hidden aria-label="Research">
+  <div class="subnav tablist" role="tablist" aria-label="Research">
+    <button role="tab" aria-selected="true" data-rsub="findings">Findings</button>
+    <button role="tab" aria-selected="false" data-rsub="methods">Methods and sources</button>
+    <button role="tab" aria-selected="false" data-rsub="limits">Limitations</button>
+    <button role="tab" aria-selected="false" data-rsub="score">Scorecard</button>
+  </div>
+  <div id="rsub-findings" class="subpane">
     <h2>Findings</h2>
-    <p class="lede">Hypotheses, written down with a prediction before anything is tested. A prediction cannot be edited once it is locked. Changing it makes a new version that starts with no results. One run is an anecdote, so a finding needs enough observations before it is called supported or refuted.</p>
+    <p class="lede">Hypotheses are written down with a prediction before anything is tested, and a locked prediction cannot be edited. Labels are descriptive pilot labels, not verdicts: with this little data, nothing here is a significance test.</p>
     <div class="controls">
-      <button id="fGenerate" class="primary" title="The model reads aggregated stats and proposes up to 3 testable hypotheses">Generate hypotheses</button>
-      <button id="fExport" title="Downloads six CSV files built from the complete record">Export data</button>
+      <button id="fGenerate" class="btn primary" title="The model reads aggregated stats and proposes up to 3 testable hypotheses">Generate hypotheses</button>
+      <button id="fExport" class="btn">Download data (CSV)</button>
       <span id="fStatus" class="note" role="status"></span>
     </div>
     <div id="fLocks"></div>
     <div id="fList"></div>
     <details><summary>Aggregated statistics the hypothesis generator reads</summary><div id="fStats"></div></details>
-  </section>
-  <section class="panel">
-    <h2>Isolation experiment</h2>
-    <p class="note">Four agents start identical and differ only in what they receive. At fixed steps each answers the same five personality questions and takes the same two self-prediction tests. Results feed the findings above automatically.</p>
-    <div id="fConds" class="fconds">
-      <label><input type="checkbox" value="isolated" checked> <b>isolated</b> <span class="note">Reads only. No conversation.</span></label>
-      <label><input type="checkbox" value="social" checked> <b>social</b> <span class="note">Converses only. Reads nothing.</span></label>
-      <label><input type="checkbox" value="mixed" checked> <b>mixed</b> <span class="note">Alternates reading and conversation.</span></label>
-      <label><input type="checkbox" value="baseline" checked> <b>baseline</b> <span class="note">Receives nothing, asked the same questions.</span></label>
-    </div>
-    <div class="controls"><label>Steps <input id="fSteps" type="number" value="6" min="1" max="20"></label><label>Check every <input id="fEvery" type="number" value="3" min="1" max="10"></label><button id="fRun" class="primary">Run experiment</button></div>
-    <p id="fEstimate" class="note"></p><p id="fProgress" class="note" role="status"></p>
-    <div id="fExpResult"></div>
-  </section>
-</main>
-
-<main id="scoreView" class="scoreview" hidden>
-  <section class="panel">
-    <h2>Indicator scorecard</h2>
-    <p class="lede">Scientific theories of consciousness each name properties a conscious system should have. This page lists them and says, plainly, which ones the Talk agent implements, in what form, and what is missing.</p>
+  </div>
+  <div id="rsub-methods" class="subpane" hidden><div id="methodsBody" class="doc"></div></div>
+  <div id="rsub-limits" class="subpane" hidden><div id="limitsBody" class="doc"></div></div>
+  <div id="rsub-score" class="subpane" hidden>
+    <h2>Architectural indicators</h2>
+    <p class="lede">Scientific theories of consciousness name properties a conscious system might have. This lists them and says which ones Stebula implements, in what form, and what is missing. It is not a score and it is not evidence about experience.</p>
     <div id="scoreSummary"></div>
-    <div class="scroll"><table id="scoreTable"></table></div>
+    <div class="tablewrap"><table id="scoreTable"></table></div>
     <div id="scoreCaveats"></div>
-  </section>
+  </div>
+</section>
 </main>
 
 <footer class="honesty">
-  Everything on this page is drawn from the recorded event log. Agent statements about feelings or awareness are self-reports, kept as data, not evidence of experience.
-  All change lives in prompts and external memory. Model weights never change.
+  Everything shown comes from recorded state. Statements an agent makes about feelings or awareness are logged as self-reports, not evidence of experience. All change lives in prompts and stored memory text; model weights never change.
 </footer>
 <script type="module" src="/app.js"></script>
-<script type="module" src="/talk.js"></script>
+<script type="module" src="/main.js"></script>
 </body>
 </html>

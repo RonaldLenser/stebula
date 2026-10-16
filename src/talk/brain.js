@@ -6,16 +6,17 @@ import { AFFECT_DRIVES, MODULES } from './workspace.js';
 export const STAGES = ['heard', 'affect', 'thoughts', 'workspace', 'speaking', 'selfmodel', 'done'];
 export const BOOST = 0.4; // same weight workspace.js applies to affect
 
-export const emptyBrain = () => ({ turn: null, phase: 'idle', heard: '', affect: null, causes: [], candidates: [], winners: [], reply: '', selfModel: null });
+// thinkStatus is 'ok' or 'failed' once the thinking stage has reported; null before that, or for turns stored before it was recorded.
+export const emptyBrain = () => ({ turn: null, phase: 'idle', heard: '', affect: null, causes: [], candidates: [], winners: [], reply: '', selfModel: null, thinkStatus: null, thinkFailure: null, turnStatus: null });
 
 export function applyStage(state, stage, data = {}) {
   const s = { ...state };
   switch (stage) {
     case 'heard': return { ...emptyBrain(), turn: data.turn ?? null, phase: 'heard', heard: data.text || '' };
     case 'affect': s.phase = 'affect'; s.affect = data.after || null; s.causes = data.causes || []; break;
-    case 'thoughts': s.phase = 'thoughts'; s.candidates = data.candidates || []; break;
+    case 'thoughts': s.phase = 'thoughts'; s.candidates = data.candidates || []; s.thinkStatus = data.status ?? (s.candidates.length ? 'ok' : null); s.thinkFailure = data.failure ?? null; break;
     case 'workspace': s.phase = 'workspace'; s.winners = (data.winners || []).map(w => w.module); break;
-    case 'speaking': s.phase = 'speaking'; s.reply = data.reply || ''; break;
+    case 'speaking': s.phase = 'speaking'; s.reply = data.reply || ''; s.turnStatus = data.status ?? 'ok'; break;
     case 'selfmodel': s.selfModel = { note: data.note || '', before: data.before, after: data.after }; break;
     case 'done': s.phase = 'done'; break;
     default: break;
@@ -35,10 +36,11 @@ export function brainFromMemory(mem, turn) {
   const mono = agent.monologue;
   if (mono) {
     s = applyStage(s, 'affect', { before: mono.affectBefore, after: mono.affect, causes: mono.causes });
-    s = applyStage(s, 'thoughts', { candidates: mono.candidates });
+    const st = mono.stages?.find(x => x.stage === 'think');
+    s = applyStage(s, 'thoughts', { candidates: mono.candidates, status: mono.thinkStatus ?? (mono.candidates.length ? 'ok' : null), failure: st?.failure ?? null });
     s = applyStage(s, 'workspace', { winners: mono.candidates.filter(c => c.won) });
   }
-  s = applyStage(s, 'speaking', { reply: agent.text });
+  s = applyStage(s, 'speaking', { reply: agent.text, status: agent.status ?? 'ok' });
   const rev = mem.revisions.find(r => r.turn === turn && !String(r.trigger).startsWith('('));
   if (rev) s = applyStage(s, 'selfmodel', { before: rev.before, after: rev.after, note: rev.note });
   return applyStage(s, 'done');

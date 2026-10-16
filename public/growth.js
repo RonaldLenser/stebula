@@ -76,7 +76,7 @@ function provenance(mem, items) {
   const all = [...it.evidence.map(x => ({ ...x, dir: 'supports' })), ...it.counter.map(x => ({ ...x, dir: 'contradicts' }))].sort((a, b) => a.n - b.n);
   box.innerHTML = `<h3>${esc(it.name)} <span class="note">(${it.kind}, origin event ${esc(it.originEvent)})</span></h3>
     <p class="stat">Strength history: ${it.history.map(h => h.strength.toFixed(2)).join(' then ')}</p>
-    <ol class="prov">${all.map(x => `<li class="${x.dir === 'supports' ? 'sup' : 'con'}"><b>${x.dir === 'supports' ? '+0.15' : '-0.20'}</b> step ${x.n}: "${esc(x.quote)}"<br><span class="note">${where(x)}</span></li>`).join('')}</ol>
+    <ol class="provlist">${all.map(x => `<li class="${x.dir === 'supports' ? 'sup' : 'con'}"><b>${x.dir === 'supports' ? '+0.15' : '-0.20'}</b> step ${x.n}: "${esc(x.quote)}"<br><span class="note">${where(x)}</span></li>`).join('')}</ol>
     <p class="note">Traits are evidence-scored patterns, not proof of a personality. The model proposed each quote; code checked it against the source text and set the strength.</p>`;
 }
 

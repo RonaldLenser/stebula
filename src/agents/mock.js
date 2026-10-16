@@ -82,8 +82,10 @@ export function makeMockAgent({ id, persona, seed }) {
     },
     async decide(ctx) {
       sync(ctx);
-      const H = held ? RULES[held].fn : () => true;
-      return wrap({ labels: ctx.testTriples.map(t => (H(t) ? 'accept' : 'reject')), reason: `Applied: ${held ? RULES[held].text : 'accept everything'}.` });
+      // Information flow is explicit: the decision uses the synthesis it is handed (as a live model does), or else only what the prompt shows.
+      const rule = ctx.synthesis ? ctx.synthesis.mockRule : choose(ctx);
+      const H = rule ? RULES[rule].fn : () => true;
+      return wrap({ labels: ctx.testTriples.map(t => (H(t) ? 'accept' : 'reject')), reason: `Applied: ${rule ? RULES[rule].text : 'accept everything'}.` });
     },
     async reflect(ctx) {
       const s = ctx.stats, mem = ctx.memory;

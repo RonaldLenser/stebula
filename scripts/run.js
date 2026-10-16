@@ -43,7 +43,8 @@ function pull() {
 let child = null, running = null, stopping = false, crashes = [];
 function start() {
   running = head();
-  child = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, STEBULA_VERSION: running } });
+  // The 'ipc' channel lets the launcher ask the server whether work is running, and ask it to stop cleanly.
+  child = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: ['inherit', 'inherit', 'inherit', 'ipc'], env: { ...process.env, STEBULA_VERSION: running, STEBULA_REVISION: tryGit('rev-parse', 'HEAD') || '' } });
   child.on('exit', code => {
     child = null;
     if (stopping) return;
@@ -53,19 +54,31 @@ function start() {
     setTimeout(start, 1500);
   });
 }
-function restart() {
+// How many conversations, readings or experiments are running right now. Unknown (no answer) counts as none.
+const activeJobs = () => new Promise(resolve => {
+  if (!child?.connected) return resolve(0);
+  const t = setTimeout(() => { child?.off('message', on); resolve(0); }, 1500);
+  const on = m => { if (m?.type === 'activity') { clearTimeout(t); child.off('message', on); resolve(m.active); } };
+  child.on('message', on);
+  child.send({ type: 'activity' });
+});
+async function restart() {
   if (!child) return start();
+  const busy = await activeJobs();
+  if (busy > 0) return say(`New version ${head()} is ready, but ${busy} job(s) are still running. Waiting for them to finish before restarting.`);
   say(`New version ${head()}. Restarting the server.`);
   stopping = true;
-  child.once('exit', () => { stopping = false; start(); });
-  child.kill();
+  const old = child;
+  old.once('exit', () => { stopping = false; start(); });
+  if (old.connected) old.send('shutdown'); else old.kill();   // graceful: cancels work and flushes the record
+  setTimeout(() => { if (old.exitCode === null) old.kill(); }, 12_000);
 }
 
 pull();
 if (!isRepo()) say('Not a git repository, so auto-update is off. Clone the repo from GitHub to turn it on.');
 start();
-setInterval(() => { pull(); if (head() !== running) restart(); }, EVERY);
+setInterval(() => { pull(); if (head() !== running) restart().catch(e => say(`Restart failed: ${e.message}`)); }, EVERY);
 
-const quit = () => { stopping = true; child?.kill(); process.exit(0); };
+const quit = () => { stopping = true; if (child?.connected) child.send('shutdown'); else child?.kill(); setTimeout(() => process.exit(0), 2500); };
 process.on('SIGINT', quit);
 process.on('SIGTERM', quit);

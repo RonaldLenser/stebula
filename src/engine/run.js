@@ -14,6 +14,8 @@ export const CONDITIONS = {
 };
 
 const key = t => t.join(',');
+// Small stable hash for recording which memory an episode started from (no Node-only imports: this file also runs in the browser).
+export const hash32 = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16).padStart(8, '0'); };
 const str = (x, n = 600) => (x == null ? '' : String(x)).slice(0, n);
 const clamp01 = x => { const n = Number(x); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; };
 const toLabel = x => { const s = String(x || '').toLowerCase(); return s.startsWith('acc') ? 'accept' : s.startsWith('rej') ? 'reject' : null; };
@@ -72,6 +74,7 @@ export async function runExperiment(config, deps) {
   const metricsByEp = [];
 
   emit('run_start', {
+    manifest: deps.manifest || null,
     config: cfg, condition: { id: cfg.condition, ...cond },
     agents: agents.map(a => ({ id: a.id, label: a.persona.label, stance: a.persona.stance, kind: a.kind })),
   });
@@ -84,7 +87,7 @@ export async function runExperiment(config, deps) {
         memory[a.id] = emptyMemory();
       }
       const epStart = events.length;
-      emit('episode_start', { ep, task: publicTask(task) });
+      emit('episode_start', { ep, task: publicTask(task), memoryHash: Object.fromEntries(agents.map(a => [a.id, hash32(JSON.stringify(memory[a.id]))])) });
 
       const obs = [], notes = [], last = {}, turns = Object.fromEntries(agents.map(a => [a.id, []]));
       const seen = () => new Set([...task.seeds, ...obs.map(o => o.triple)].map(key));
@@ -106,10 +109,13 @@ export async function runExperiment(config, deps) {
         await gate({ ep, round: r });
         if (shouldStop()) { emit('run_end', { status: 'stopped' }); return events; }
         for (const inj of takeInjections()) inject(inj);
+        // Round 0: every agent forms its first hypothesis and probe from the SAME observation snapshot. Nobody sees
+        // another agent's first probe result before choosing their own.
+        const roundStart = obs.slice();
         for (const a of agents) {
           const pid = partnerOf(a.id);
           const ctx = {
-            seeds: task.seeds, observations: obs.slice(), notes: notes.slice(), memory: memory[a.id],
+            seeds: task.seeds, observations: r === 0 ? roundStart : obs.slice(), notes: notes.slice(), memory: memory[a.id],
             partner: r === 0 || !pid ? null : (last[pid] || null), hasPartner: dyad, round: r, rounds,
           };
           const res = await a.probe(ctx);
@@ -125,6 +131,7 @@ export async function runExperiment(config, deps) {
           turns[a.id].push(turn);
           emit('affect', { ep, round: r, agent: a.id, affect: computeAffect(a.id, obs, turn, pid ? last[pid] : null) });
         }
+        if (r === 0) emit('initial_hypotheses', { ep, snapshotObservations: roundStart.length, hypotheses: Object.fromEntries(agents.map(a => [a.id, last[a.id]?.hypothesis ?? null])) });
       }
 
       // 6. Candidate synthesis
@@ -139,7 +146,8 @@ export async function runExperiment(config, deps) {
       // 7. Test against new cases: individual decisions, scored by code
       const scores = {};
       for (const a of agents) {
-        const res = await a.decide({ seeds: task.seeds, observations: obs.slice(), notes, memory: memory[a.id], testTriples: publicTask(task).testTriples });
+        // The decision receives the agent's own synthesis. Live and scripted agents get the same inputs.
+        const res = await a.decide({ seeds: task.seeds, observations: obs.slice(), notes, memory: memory[a.id], testTriples: publicTask(task).testTriples, synthesis: synth[a.id] });
         const d = normDecision(res.obj, task.test.length);
         scores[a.id] = scoreLabels(task, d.labels);
         emit('decision', { ep, agent: a.id, decision: d, score: scores[a.id], parseError: !res.obj, raw: res.raw, prompt: res.prompt });

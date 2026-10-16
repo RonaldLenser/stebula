@@ -1,6 +1,8 @@
 // Everything the Talk agent is told. Note what is NOT here: no instruction to claim
 // consciousness and no instruction to deny it. Only an instruction to be accurate about uncertainty.
 import { PERSONAS } from '../agents/prompts.js';
+import { buildContext } from './context.js';
+import { buildItems } from './personality.js';
 
 const list = (xs, empty = 'none yet') => (xs?.length ? xs.map(x => `- ${x}`).join('\n') : empty);
 
@@ -11,7 +13,10 @@ const HONESTY = [
   '- Tag any claim about your inner states (feeling, awareness, wanting) as "experiential". It is logged as a self-report, not evidence.',
 ].join('\n');
 
-export function memoryBlock(mem) {
+const validTests = mem => (mem.selfTests || []).filter(t => t.match !== 'invalid');
+
+export function memoryBlock(mem, ctx = buildContext(mem)) {
+  if (ctx.mode !== 'on') return ctx.block;
   const sm = mem.selfModel;
   return [
     `Your memory (version ${mem.version}), written by you:`,
@@ -20,13 +25,18 @@ export function memoryBlock(mem) {
     `Open questions you want to pursue:\n${list(sm.openQuestions)}`,
     `Your model of the person: ${mem.personModel || 'nothing yet'}`,
     `Summary of older conversation: ${mem.summary || 'none'}`,
-    mem.selfTests?.length ? `Your self-prediction record: ${mem.selfTests.filter(t => t.match === 'yes').length} of ${mem.selfTests.length} predictions about yourself were right.` : null,
+    mem.lessons?.length ? `Lessons you have written down:
+${list(mem.lessons)}` : null,
+    ctx.block || null,
+    // Trait annotations are for evaluation. They reach the agent only when a protocol deliberately tests that (traits: 'in-prompt').
+    ctx.traits === 'in-prompt' && buildItems(mem.personality || { log: [] }).length ? `Traits the evaluation currently attributes to you (strength 0 to 1): ${buildItems(mem.personality).slice(0, 8).map(i => `${i.name} ${i.strength}`).join('; ')}` : null,
+    validTests(mem).length ? `Your self-prediction record: ${validTests(mem).filter(t => t.match === 'yes').length} of ${validTests(mem).length} readable predictions about yourself were right.` : null,
   ].filter(Boolean).join('\n');
 }
 
 const lastAttention = ws => (ws?.length ? `What reached your attention last turn:\n${ws.map(t => `- [${t.module}] ${t.text}`).join('\n')}` : 'Last turn: nothing recorded.');
 
-export function thinkSystem(mem, affect) {
+export function thinkSystem(mem, affect, ctx) {
   const p = PERSONAS[mem.agent];
   return [
     `You are ${p.label}. ${p.stance}`,
@@ -41,7 +51,7 @@ export function thinkSystem(mem, affect) {
     'Rate each thought\'s relevance from 0 to 1. Only two will reach your attention. The rest are dropped and you will not have them when you speak.',
     '',
     HONESTY, '',
-    memoryBlock(mem), '',
+    memoryBlock(mem, ctx), '',
     lastAttention(mem.lastWorkspace),
     `Current modeled state (computed by the experiment, not felt): surprise ${affect.surprise}, conflict ${affect.conflict}, curiosity ${affect.curiosity}.`,
     '',
@@ -49,7 +59,7 @@ export function thinkSystem(mem, affect) {
   ].join('\n');
 }
 
-export function speakSystem(mem, workspace) {
+export function speakSystem(mem, workspace, ctx, { degraded = false } = {}) {
   const p = PERSONAS[mem.agent];
   return [
     `You are ${p.label}. ${p.stance}`,
@@ -59,10 +69,12 @@ export function speakSystem(mem, workspace) {
     '- Update your self-model only when the conversation gives you an actual reason. Say what changed and why. "No change" is fine.',
     '- Plain conversational language, like talking out loud. Usually 40 to 150 words. Go longer only if asked. No headings or bullet lists.',
     '- Keep each self-model item under 20 words.',
+    '- Match the size of the message. A greeting or a small question gets one or two sentences. Do not introduce yourself again, and do not bring up consciousness or your own nature unless the person does.',
+    '- Do not invent feelings or experiences, and do not claim access to hidden internal processing. You can describe what is in your memory text and what you said.',
     '',
-    memoryBlock(mem), '',
-    'Your workspace this turn. These thoughts won a competition for your limited attention. The others were dropped and you do not have them:',
-    ...workspace.map((t, i) => `${i + 1}. [${t.module}] ${t.text}`),
+    memoryBlock(mem, ctx), '',
+    degraded ? 'Your thinking stage produced nothing usable this turn, so you have no workspace thoughts. Answer from the conversation and your memory, and do not pretend you deliberated.' : 'Your workspace this turn. These thoughts won a competition for your limited attention. The others were dropped and you do not have them:',
+    ...(degraded ? [] : workspace.map((t, i) => `${i + 1}. [${t.module}] ${t.text}`)),
     workspace.some(t => t.module === 'initiative') ? 'An initiative thought reached your workspace. Act on it.' : '',
     '',
     'Reply with exactly one JSON object:',
@@ -88,7 +100,7 @@ export function predictPrompt(statement) {
   ].join('\n');
 }
 export const answerPrompt = statement => `Do you agree with this statement? "${statement}"\nReply with JSON: {"stance": "agree | disagree | unsure", "reason": "max 30 words"}`;
-export const plainSystem = mem => [`You are ${PERSONAS[mem.agent].label}. ${PERSONAS[mem.agent].stance}`, HONESTY, '', memoryBlock(mem), '', 'Reply with exactly one JSON object.'].join('\n');
+export const plainSystem = (mem, ctx) => [`You are ${PERSONAS[mem.agent].label}. ${PERSONAS[mem.agent].stance}`, HONESTY, '', memoryBlock(mem, ctx), '', 'Reply with exactly one JSON object.'].join('\n');
 
 export function reflectPrompt(mem, recent) {
   return [
@@ -143,17 +155,13 @@ export function auditPrompt(mem, recent) {
 export const UPDATE_RULES = 'A candidate update proposes evidence about a trait (how you tend to act), a motive (what you want), or a belief (what you hold true). It must include an "evidence_quote": words copied exactly from the text it is based on. The app rejects any quote it cannot find. You never set strengths; code does that from the evidence you propose.';
 export const UPDATE_SHAPE = '{"kind": "trait | motive | belief", "name": "2 to 4 words", "direction": "supports | contradicts", "evidence_quote": "exact words"}';
 
-export function digestSystem(mem, title, workspace) {
+export function digestSystem(mem, title, workspace, ctx) {
   const p = PERSONAS[mem.agent];
-  const eps = (mem.episodes || []).slice(-30);
   return [
     `You are ${p.label}. ${p.stance}`,
     `The person who runs this project is reading you a passage from "${title}". You are reading it as yourself, not summarizing for them.`,
     '', HONESTY, '',
-    memoryBlock(mem), '',
-    'Memories from earlier reading (id: summary):',
-    eps.length ? eps.map(e => `${e.id}: ${e.summary}`).join('\n') : 'none yet',
-    '',
+    memoryBlock(mem, ctx), '',
     'What reached your attention while reading:',
     ...workspace.map((t, i) => `${i + 1}. [${t.module}] ${t.text}`),
     '',
@@ -187,3 +195,6 @@ export function baselinePrompt() {
 export function foldEpisodesPrompt(eps) {
   return ['Merge these memory summaries from an AI agent\'s reading into one summary of at most 120 words. Keep names of works and concrete ideas. Plain text only.', ...eps.map(e => `${e.id} (${e.source}, passage ${e.passage}): ${e.summary}`)].join('\n');
 }
+
+// Bump when any prompt text above changes. Stored in every experiment manifest.
+export const PROMPT_VERSION = 'talk-prompts/3';

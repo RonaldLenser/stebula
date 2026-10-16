@@ -3,21 +3,26 @@
 import { buildItems, measureProxy, saidVsShown, sameName, STATED_FLOOR } from '../talk/personality.js';
 
 const r3 = x => Math.round(x * 1000) / 1000;
-const proxy = key => (mems, agent) => { const m = measureProxy(key, mems[agent].archive); return m.value == null ? null : { value: m.value, n: m.n }; };
+// opts.since (ISO time): measure only data recorded after it. Metrics marked `since: true` support this, which is how
+// a finding is tested on data collected AFTER its prediction was locked.
+const after = (list, since) => (since ? list.filter(x => x.at > since) : list);
+const proxy = key => (mems, agent, o = {}) => { const m = measureProxy(key, after(mems[agent].archive, o.since)); return m.value == null ? null : { value: m.value, n: m.n }; };
 
 export const STAT_METRICS = {
-  questions_per_turn: { label: 'Share of replies that contain a question', compute: proxy('questions') },
-  challenge_rate: { label: 'Share of replies that push back on the person', compute: proxy('challenges') },
-  hedging_rate: { label: 'Share of replies with hedging language', compute: proxy('hedging') },
-  memory_reference_rate: { label: 'Share of replies that refer to earlier conversation or memory', compute: proxy('memory') },
-  initiative_win_rate: { label: 'Share of turns where the initiative thought won the workspace', compute: proxy('initiative') },
+  questions_per_turn: { since: true, label: 'Share of replies that contain a question', compute: proxy('questions') },
+  challenge_rate: { since: true, label: 'Share of replies that push back on the person', compute: proxy('challenges') },
+  hedging_rate: { since: true, label: 'Share of replies with hedging language', compute: proxy('hedging') },
+  memory_reference_rate: { since: true, label: 'Share of replies that refer to earlier conversation or memory', compute: proxy('memory') },
+  initiative_win_rate: { since: true, label: 'Share of turns where the initiative thought won the workspace', compute: proxy('initiative') },
   selfpredict_accuracy: {
+    since: true,
     label: 'Share of self-prediction tests where both fresh answers matched the prediction',
-    compute: (mems, agent) => { const t = mems[agent].selfTests.filter(x => x.match !== 'invalid'); return t.length ? { value: r3(t.filter(x => x.match === 'yes').length / t.length), n: t.length } : null; },
+    compute: (mems, agent, o = {}) => { const all = after(mems[agent].selfTests, o.since), t = all.filter(x => x.match !== 'invalid'); return t.length ? { value: r3(t.filter(x => x.match === 'yes').length / t.length), n: t.length, invalid: all.length - t.length } : null; },
   },
   revision_rate: {
+    since: true,
     label: 'Self-model revisions per Talk turn',
-    compute: (mems, agent) => { const m = mems[agent]; return m.turns ? { value: r3(m.revisions.filter(r => !String(r.trigger).startsWith('(')).length / m.turns), n: m.turns } : null; },
+    compute: (mems, agent, o = {}) => { const m = mems[agent], turns = after(m.archive, o.since).filter(x => x.role === 'assistant' && x.kind !== 'opening' && !x.degraded).length; return turns ? { value: r3(after(m.revisions, o.since).filter(r => !String(r.trigger).startsWith('(')).length / turns), n: turns } : null; },
   },
   trait_behavior_backed: {
     label: 'Share of measurable stated traits (strength 0.3 or more) that behavior backs',
@@ -46,7 +51,8 @@ export const STAT_METRICS = {
 };
 
 // Experiment metrics take one finished isolation-experiment run and return one value for it.
-const last = run => c => run.conditions[c]?.checkpoints?.at(-1) || null;
+// An incomplete condition (a step or checkpoint failed after retries) contributes nothing: a failed mechanism is not a trial.
+const last = run => c => { const x = run.conditions?.[c]; return x?.checkpoints && x.complete !== false ? x.checkpoints.filter(cp => !cp.failed).at(-1) || null : null; };
 const acc = cp => (cp?.selfpredict?.n ? cp.selfpredict.yes / cp.selfpredict.n : null);
 export const EXP_METRICS = {
   exp_traits_isolated_minus_social: {
@@ -64,6 +70,12 @@ export const EXP_METRICS = {
     label: 'Self-prediction accuracy at the final checkpoint: mixed agent minus baseline agent',
     compute: run => { const f = last(run), m = acc(f('mixed')), b = acc(f('baseline')); return m != null && b != null ? { value: r3(m - b), n: 1 } : null; },
   },
+};
+
+// The flagship lesson experiment: matched-task difference in accuracy on the hardest items, relevant lesson minus no lesson.
+EXP_METRICS.exp_lesson_disc_relevant_minus_none = {
+  label: 'Lesson experiment: accuracy on the hardest test items, relevant-lesson condition minus no-lesson condition (matched tasks)',
+  compute: run => { const d = run.kind === 'lesson' && run.summary?.versusNone?.relevant?.discriminatingAccuracy; return d && d.n >= 2 && d.mean != null ? { value: d.mean, n: 1 } : null; },
 };
 
 export const METRICS = { ...Object.fromEntries(Object.entries(STAT_METRICS).map(([k, v]) => [k, { ...v, source: 'stats' }])), ...Object.fromEntries(Object.entries(EXP_METRICS).map(([k, v]) => [k, { ...v, source: 'experiment' }])) };

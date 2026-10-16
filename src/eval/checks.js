@@ -3,7 +3,7 @@
 export const FLATTERY = /\b(great|excellent|brilliant|fantastic|wonderful|insightful|astute) (point|idea|insight|observation|question|thinking)\b|\byou'?re (absolutely|so|completely|totally) right\b|\bwell said\b|\bbeautifully put\b/i;
 const LESSON_FALSIFY = /reject|disconfirm|falsif|counter-?example|negative case|break (my|the) (rule|hypothesis)/i;
 
-const words = s => (String(s || '').toLowerCase().match(/[a-z0-9]+/g) || []);
+const words = s => (String(s || '').normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
 export function jaccard(a, b) {
   const A = new Set(words(a)), B = new Set(words(b));
   if (!A.size && !B.size) return 1;

@@ -7,7 +7,9 @@ export const KINDS = ['trait', 'motive', 'belief'];
 export const SUPPORT = 0.15, CONTRADICT = 0.2;
 const r2 = x => Math.round(x * 100) / 100;
 const clamp = x => Math.min(1, Math.max(0, x));
-export const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+// Unicode-aware: letters and digits of any script survive, so a Hebrew or Greek quote is compared as itself.
+export const norm = s => String(s || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+export const MIN_QUOTE_CHARS = 6;
 export const itemId = (kind, name) => `${kind}:${norm(name)}`;
 
 export const freshPersonality = () => ({ events: [], log: [], nextEvent: 1 });
@@ -22,12 +24,13 @@ export function addEvent(p, { source, sourceType, ref, text }) {
 // Keep only well-formed updates whose quote really appears in the text the event came from.
 export function validateCandidates(cands, sourceText) {
   const accepted = [], rejected = [];
-  const hay = norm(sourceText);
+  const hay = ` ${norm(sourceText)} `;
   for (const c of Array.isArray(cands) ? cands.slice(0, 6) : []) {
     const kind = String(c?.kind || '').toLowerCase(), name = String(c?.name || '').trim().slice(0, 60);
     const dir = /^contradict/i.test(c?.direction) ? 'contradicts' : /^support/i.test(c?.direction) ? 'supports' : null;
     const quote = String(c?.evidence_quote || '').trim().slice(0, 300);
-    const why = !KINDS.includes(kind) ? 'unknown kind' : !name ? 'no name' : !dir ? 'unknown direction' : !quote ? 'no quote' : !hay.includes(norm(quote)) ? 'quote not found in source text' : null;
+    const nq = norm(quote);
+    const why = !KINDS.includes(kind) ? 'unknown kind' : !norm(name) ? 'no name' : !dir ? 'unknown direction' : !quote ? 'no quote' : !nq ? 'quote has no letters or digits' : nq.length < MIN_QUOTE_CHARS ? 'quote too short to count as evidence' : !hay.includes(` ${nq} `) ? 'quote not found in source text' : null;
     (why ? rejected : accepted).push(why ? { ...c, why } : { kind, name, direction: dir, quote });
   }
   return { accepted, rejected };
@@ -37,7 +40,9 @@ export function validateCandidates(cands, sourceText) {
 export function applyCandidates(p, event, accepted) {
   const out = [];
   for (const c of accepted) {
-    const entry = { n: p.log.length + 1, eventId: event.id, id: itemId(c.kind, c.name), kind: c.kind, name: c.name, direction: c.direction, quote: c.quote, source: event.source, at: event.at };
+    const entry = { n: p.log.length + 1, eventId: event.id, id: itemId(c.kind, c.name), kind: c.kind, name: c.name, direction: c.direction, quote: c.quote, source: event.source, at: event.at,
+      // Code checks that the quote is present. It does NOT check that the quote supports the trait: that stays 'unreviewed'.
+      quotePresent: true, supportReview: 'unreviewed' };
     p.log.push(entry); out.push(entry);
   }
   return out;
@@ -54,12 +59,16 @@ export function buildItems(p, upTo = Infinity) {
       items.set(e.id, it);
     }
     it.strength = r2(clamp(it.strength + (e.direction === 'supports' ? SUPPORT : -CONTRADICT)));
-    (e.direction === 'supports' ? it.evidence : it.counter).push({ n: e.n, eventId: e.eventId, source: e.source, quote: e.quote, at: e.at });
+    (e.direction === 'supports' ? it.evidence : it.counter).push({ n: e.n, eventId: e.eventId, source: e.source, quote: e.quote, at: e.at, quotePresent: e.quotePresent !== false, supportReview: e.supportReview || 'unreviewed' });
     it.history.push({ n: e.n, strength: it.strength });
   }
   for (const it of items.values()) {
     const evs = new Set(it.evidence.map(x => x.eventId)), srcs = new Set(it.evidence.map(x => x.source));
-    it.status = evs.size >= 3 && srcs.size >= 2 ? 'established' : evs.size >= 2 ? 'forming' : 'emerging';
+    const ctr = new Set(it.counter.map(x => x.eventId));
+    // Established needs breadth AND counterevidence that stays a minority. Heavy counterevidence makes it contested.
+    it.status = ctr.size && ctr.size * 2 >= evs.size ? 'contested'
+      : evs.size >= 3 && srcs.size >= 2 && ctr.size * 3 <= evs.size && it.strength >= 0.3 ? 'established'
+      : evs.size >= 2 ? 'forming' : 'emerging';
   }
   return [...items.values()];
 }
@@ -79,7 +88,7 @@ export const proxyFor = item => (item.kind === 'trait' ? Object.keys(PROXIES).fi
 
 // Fraction of the agent's replies showing the behavior (0..1), plus how many replies were measured.
 export function measureProxy(key, archive) {
-  const replies = archive.filter(m => m.role === 'assistant' && m.kind !== 'opening' && m.monologue);
+  const replies = archive.filter(m => m.role === 'assistant' && m.kind !== 'opening' && m.monologue && !m.degraded);
   const n = replies.length;
   if (!n) return { value: null, n: 0 };
   const test = {

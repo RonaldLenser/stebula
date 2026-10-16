@@ -1,21 +1,64 @@
 // Findings registry (data/findings.json). The prediction, metric, and refutation condition are locked when a
 // finding is created. Nothing locked can be edited; a change creates a new version with no inherited results.
 import { createHash } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { writeFileAtomic } from '../lib/atomic.js';
 import { extractJson } from '../agents/parse.js';
 import { METRICS, COMPARATORS, aggregateStats, catalog } from './metrics.js';
 import { HUMAN_AREAS } from './human.js';
 
-export const STATUSES = ['proposed', 'testing', 'supported', 'refuted', 'inconclusive'];
+// Pilot labels, not verdicts. "pilot-consistent" means the measured value is on the predicted side of the threshold
+// with at least minN independent observations. It is not a significance test and not a confirmation. See LIMITATIONS.
+export const STATUSES = ['proposed', 'testing', 'exploratory', 'inconclusive', 'pilot-consistent', 'pilot-inconsistent'];
+export const STATUS_TEXT = {
+  proposed: 'Proposed. No data yet.',
+  testing: 'Testing.',
+  exploratory: 'Exploratory. Measured on data that existed before the prediction was locked, so it cannot confirm anything.',
+  inconclusive: 'Inconclusive. Not enough independent observations yet.',
+  'pilot-consistent': 'Pilot: consistent with the prediction. Small sample, no significance test.',
+  'pilot-inconsistent': 'Pilot: not consistent with the prediction. Small sample, no significance test.',
+};
 const LOCKED = ['statement', 'prediction', 'metric', 'refutedIf'];
 const str = (x, n = 400) => (x == null ? '' : String(x)).trim().slice(0, n);
 const r3 = x => Math.round(x * 1000) / 1000;
 const lockHash = f => createHash('sha256').update(JSON.stringify(LOCKED.map(k => f[k]))).digest('hex').slice(0, 16);
 
 export const freshRegistry = () => ({ format: 'stebula-findings/1', seq: 0, findings: [] });
-export async function loadRegistry(file) { try { return JSON.parse(await readFile(file, 'utf8')); } catch { return freshRegistry(); } }
-export async function saveRegistry(file, reg) { await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, JSON.stringify(reg, null, 1)); }
+export class CorruptRegistryError extends Error {
+  constructor(file, cause) { super(`The findings file (${path.basename(file)}) exists but cannot be read: ${cause}. It was not replaced. Restore a backup or move it aside.`); this.name = 'CorruptRegistryError'; this.status = 409; }
+}
+// Only a genuinely missing file means "start empty". A damaged file is an error, never silently replaced.
+export async function loadRegistry(file) {
+  let text;
+  try { text = await readFile(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return freshRegistry(); throw e; }
+  try { const reg = JSON.parse(text); if (!Array.isArray(reg?.findings)) throw new Error('no findings list'); return reg; } catch (e) { throw new CorruptRegistryError(file, e.message); }
+}
+export async function saveRegistry(file, reg) { await mkdir(path.dirname(file), { recursive: true }); await writeFileAtomic(file, JSON.stringify(reg, null, 1)); }
+
+// The ONE path that writes the registry: findings, test results, experiment completion. Updates run one at a time,
+// each reads fresh state, and a change that would break a lock hash is refused instead of saved.
+export function makeRegistry(file) {
+  let chain = Promise.resolve();
+  return {
+    file,
+    update(fn) {
+      const run = chain.then(async () => {
+        const reg = await loadRegistry(file);
+        const before = JSON.stringify(reg);
+        ensureDefaultFindings(reg);
+        const out = await fn(reg);
+        const bad = verifyLocks(reg);
+        if (bad.length) throw new Error(`Refused: a locked finding no longer matches its lock hash (${bad.join(', ')}).`);
+        if (JSON.stringify(reg) !== before) await saveRegistry(file, reg);
+        return out;
+      });
+      chain = run.catch(() => {});
+      return run;
+    },
+    read: () => loadRegistry(file),
+  };
+}
 
 const label = f => `${f.id} v${f.version}`;
 export const findingKey = f => `${f.id}@${f.version}`;
@@ -82,54 +125,67 @@ export function reviseFinding(reg, id, changes, now = new Date().toISOString()) 
   return f;
 }
 
-// Turn the stored results into a status. Stats metrics use the latest observation; experiment metrics pool runs.
+// Turn stored results into a pilot label. Experiment metrics pool independent runs (one value per run id);
+// stats metrics use the latest measurement. An exploratory result (measured on data from before the lock)
+// never earns a consistent/inconsistent label.
 export function evaluate(f) {
-  if (!f.computable || !f.results.length) return { status: f.status, value: null, n: 0 };
+  if (!f.computable || !f.results.length) return { status: f.status, value: null, n: 0, evidenceClass: null };
   const exp = METRICS[f.metric.name].source === 'experiment';
-  const value = exp ? r3(f.results.reduce((s, r) => s + r.value, 0) / f.results.length) : f.results.at(-1).value;
-  const n = exp ? f.results.length : f.results.at(-1).n;
-  const status = n < f.prediction.minN ? 'inconclusive' : COMPARATORS[f.prediction.comparator](value, f.prediction.value) ? 'supported' : 'refuted';
-  return { status, value, n };
+  const confirmatory = f.results.filter(r => r.evidenceClass !== 'exploratory');
+  const pool = exp ? confirmatory : confirmatory.slice(-1);
+  const last = f.results.at(-1);
+  if (!pool.length) return { status: 'exploratory', value: last.value, n: last.n, evidenceClass: 'exploratory' };
+  const value = exp ? r3(pool.reduce((t, r) => t + r.value, 0) / pool.length) : pool.at(-1).value;
+  const n = exp ? pool.length : pool.at(-1).n;
+  const status = n < f.prediction.minN ? 'inconclusive' : COMPARATORS[f.prediction.comparator](value, f.prediction.value) ? 'pilot-consistent' : 'pilot-inconsistent';
+  return { status, value, n, evidenceClass: 'confirmatory-pilot' };
 }
 
+// Adding the same run twice is a no-op, so a retried request cannot inflate the count.
 function addResult(f, r, now) {
+  if (r.runId && f.results.some(x => x.runId === r.runId)) return null;
   f.results.push({ ...r, at: now });
   f.status = 'testing';
   const e = evaluate(f);
   f.status = e.status;
-  f.results.at(-1).outcome = e.status; f.results.at(-1).pooledValue = e.value; f.results.at(-1).pooledN = e.n;
+  Object.assign(f.results.at(-1), { outcome: e.status, pooledValue: e.value, pooledN: e.n });
   return f;
 }
 
 // Test one finding against the current memory files. Experiment metrics are tested by feedExperiment instead.
+// A stats metric is measured only on data recorded AFTER the finding was locked, so a hypothesis suggested by
+// existing statistics is never tested against those same statistics. Metrics that cannot be restricted that way
+// are measured on everything and labelled exploratory.
 export function testFinding(reg, id, mems, now = new Date().toISOString()) {
   const f = current(reg, id);
   if (!f) throw new Error(`No finding ${id}.`);
   if (!f.computable) throw new Error(`${label(f)} needs an experiment: ${f.design}`);
   const m = METRICS[f.metric.name];
-  if (m.source !== 'stats') throw new Error(`${label(f)} is tested by running the isolation experiment, not from stored memory.`);
-  const v = m.compute(mems, f.metric.agent);
-  if (!v) throw new Error('There is no data for this metric yet.');
-  return addResult(f, { value: v.value, n: v.n, agent: f.metric.agent }, now);
+  if (m.source !== 'stats') throw new Error(`${label(f)} is tested by running an experiment, not from stored memory.`);
+  const since = m.since ? f.lockedAt : null;
+  const v = m.compute(mems, f.metric.agent, since ? { since } : {});
+  if (!v) throw new Error(since ? 'No data has been collected since this finding was locked. Collect more, then test again.' : 'There is no data for this metric yet.');
+  return addResult(f, { value: v.value, n: v.n, invalid: v.invalid ?? 0, agent: f.metric.agent, scope: since ? 'since-lock' : 'all-data', evidenceClass: since ? 'confirmatory-pilot' : 'exploratory' }, now);
 }
 
-// An experiment run feeds every live finding that uses an experiment metric.
+// An experiment run feeds every live finding that uses an experiment metric. Idempotent per run id.
 export function feedExperiment(reg, run, now = new Date().toISOString()) {
   const fed = [];
   for (const f of reg.findings) {
     if (f.supersededBy || !f.computable) continue;
     const m = METRICS[f.metric.name];
     if (m.source !== 'experiment') continue;
+    if (Date.parse(run.at) < Date.parse(f.lockedAt)) continue; // data collected before the lock cannot test it
     const v = m.compute(run);
     if (!v) continue;
-    addResult(f, { value: v.value, n: 1, runId: run.runId }, now);
-    fed.push(findingKey(f));
+    if (addResult(f, { value: v.value, n: 1, runId: run.runId, scope: 'run', evidenceClass: 'confirmatory-pilot' }, now)) fed.push(findingKey(f));
   }
   return fed;
 }
 
 // Predictions written by the code, locked before any experiment has run.
 export const DEFAULT_EXPERIMENT_FINDINGS = [
+  { key: 'exp-lesson-transfer', statement: 'An agent given a relevant stored lesson classifies the hardest new items more accurately than the same agent given no lesson, on matched tasks.', metric: { name: 'exp_lesson_disc_relevant_minus_none' }, prediction: { comparator: '>', value: 0, minN: 3 }, refutedIf: 'Across at least 3 independent runs, the relevant-lesson condition is not more accurate on the hardest items than the no-lesson condition.' },
   { key: 'exp-iso-traits', statement: 'An agent that only reads expresses more personality traits in its answers than an agent that only converses, after the same number of steps.', metric: { name: 'exp_traits_isolated_minus_social' }, prediction: { comparator: '>', value: 0, minN: 3 }, humanArea: 'social-deprivation' },
   { key: 'exp-mixed-baseline', statement: 'An agent that both reads and converses expresses mostly different traits from the no-input baseline: fewer than half of its final traits also appear in the baseline.', metric: { name: 'exp_mixed_baseline_overlap' }, prediction: { comparator: '<', value: 0.5, minN: 3 }, humanArea: 'personality-heritability' },
   { key: 'exp-selfpredict', statement: 'Self-prediction accuracy is higher for an agent with accumulated memory than for the no-input baseline.', metric: { name: 'exp_selfpredict_mixed_minus_baseline' }, prediction: { comparator: '>', value: 0, minN: 3 }, humanArea: 'introspection-accuracy' },
@@ -157,11 +213,11 @@ export function hypothesisPrompt(stats, recordRefs) {
   ].join('\n');
 }
 
-export async function generateHypotheses(reg, llm, { mems, records }, now = new Date().toISOString()) {
+export async function generateHypotheses(reg, llm, { mems, records, signal }, now = new Date().toISOString()) {
   const stats = aggregateStats(mems);
   const refs = records.filter(r => ['turn', 'self_test', 'digest', 'personality_change'].includes(r.type)).slice(-40).map(r => ({ id: r.id, type: r.type }));
   if (!Object.keys(stats).length) throw new Error('Not enough recorded data yet. Talk, read, or run self-prediction tests first.');
-  const raw = await llm({ system: 'You are a careful research assistant. Reply with JSON only.', user: hypothesisPrompt(stats, refs), max_tokens: 1500, stage: 'hypotheses' });
+  const raw = await llm({ system: 'You are a careful research assistant. Reply with JSON only.', user: hypothesisPrompt(stats, refs), max_tokens: 1500, stage: 'hypotheses', signal });
   const obj = extractJson(raw);
   const known = new Set(records.map(r => r.id));
   const created = [], rejected = [];

@@ -86,11 +86,13 @@ export function synthesisPrompt(ctx) {
 export function decisionPrompt(ctx) {
   return [
     memoryBlock(ctx.memory), '', taskBlock(ctx), '',
+    ctx.synthesis ? `Your own final hypothesis from this episode: "${ctx.synthesis.final_hypothesis}" (confidence ${ctx.synthesis.confidence}). You may rely on it or revise it.` : null,
+    ctx.synthesis ? '' : null,
     'Classify each of these new triples with your best judgment. Decide alone.',
     ...ctx.testTriples.map((t, i) => `  ${i + 1}. ${fmt(t)}`),
     '',
     `Reply with JSON: {"labels": [${ctx.testTriples.length} entries, each "accept" or "reject", in order], "reason": "max 30 words"}`,
-  ].join('\n');
+  ].filter(s => s !== null).join('\n');
 }
 
 export function reflectionPrompt(ctx) {

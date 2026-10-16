@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node scripts/run.js",
     "serve": "node server.js",
-    "test": "node scripts/selftest.js",
+    "test": "node scripts/test.js",
     "batch": "node scripts/batch.js",
     "docs": "node scripts/gen-docs.js"
   },

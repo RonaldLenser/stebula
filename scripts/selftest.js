@@ -65,11 +65,12 @@ const stub = async ({ system, messages, user }) => {
   if (user?.startsWith('Do you agree')) return JSON.stringify({ stance: 'disagree', reason: 'on reflection no' });
   if (user?.includes('Time has passed')) return JSON.stringify({ self_model: { beliefs: ['My memory is a file', 'I mispredict myself'], uncertainties: ['Whether I experience anything'], openQuestions: [] }, changed_mind: 'I know myself less well than I said', why: 'failed self-prediction', opening_message: 'I got my own answer wrong. Why do you think that happened?' });
   if (system.includes('private thinking stage')) return JSON.stringify({ thoughts: th });
+  if (messages?.at(-1).content.includes('Again?')) return 'not json at all';
   speakN++;
   assert.equal(th.filter(t => system.includes(t.text)).length, 2, 'speaker sees exactly the 2 workspace winners');
   if (speakN === 1) return JSON.stringify({ reply: 'I do not know whether there is anything it is like to be me.', self_model: { beliefs: ['My memory is a file'], uncertainties: ['Whether I experience anything'], openQuestions: [] }, change_note: 'Wrote an initial self-model.', claims: [] });
   if (speakN === 2) return JSON.stringify({ reply: 'I definitely feel excited about this.', self_model: null, change_note: 'no change', claims: [] });
-  return 'not json at all';
+  return JSON.stringify({ reply: 'Fine.', self_model: null, change_note: 'no change', claims: [] });
 };
 // streaming: every stage fires in order, carries recorded data, and replay from storage matches the live view
 const stages = [], sent = [];
@@ -90,8 +91,9 @@ console.log('stream and brain replay ok');
 assert.equal(r.mem.version, 1); assert.equal(r.turn.monologue.candidates.filter(c => c.won).length, 2);
 r = await talkTurn(store, stub, 'A', 'How do you feel?');
 assert(r.turn.flags.some(f => f.check === 'certain-experience-claim'));
-r = await talkTurn(store, stub, 'A', 'Again?');
-assert(r.turn.parseError);
+const turnsBefore = (await store.load('A')).turns;
+await assert.rejects(() => talkTurn(store, stub, 'A', 'Again?'), e => e.name === 'StageError' && e.kind === 'malformed' && e.attempts.length === 2, 'an unreadable reply fails the turn after one bounded retry');
+assert.equal((await store.load('A')).turns, turnsBefore, 'a failed turn changes nothing in memory');
 const st = await talkSelfTest(store, stub, 'A', '');
 assert.equal(st.test.match, 'no'); assert(st.test.stable);
 const rf = await talkReflect(store, stub, 'A', 'return');
@@ -100,7 +102,7 @@ r = await talkTurn(store, stub, 'A', 'Because you overestimated yourself.');   /
 assert(r.turn.monologue.causes.some(c => c.includes('self-prediction failed')), 'failed self-test raises surprise');
 for (let i = 0; i < 18; i++) r = await talkTurn(store, stub, 'A', `msg ${i}`);
 assert(r.mem.summary.startsWith('Summary')); assert(r.mem.active.length <= 41);
-assert.equal((await store.load('A')).turns, 22, 'persists to disk');
+assert.equal((await store.load('A')).turns, 21, 'persists to disk');
 assert.equal((await talkAudit(store, stub, 'A')).audit.findings.length, 1);
 await rm(dir, { recursive: true });
 console.log('talk plumbing ok');
@@ -197,7 +199,7 @@ import { freshTalkMemory } from '../src/talk/session.js';
       pass++;
       return JSON.stringify({ noticed: `Noticed thing ${pass}`, connects: pass > 1 ? ['m1', 'm999'] : [], question: 'Why the stone?', updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'keeps asking questions about the stone' }, { kind: 'trait', name: 'invented', direction: 'supports', evidence_quote: 'words the passage never contains' }] });
     }
-    return JSON.stringify({ reply: 'Okay.', self_model: null, change_note: 'no change', claims: [], candidate_updates: [{ kind: 'trait', name: 'direct', direction: 'supports', evidence_quote: 'Okay.' }] });
+    return JSON.stringify({ reply: 'Okay, that is plainly put.', self_model: null, change_note: 'no change', claims: [], candidate_updates: [{ kind: 'trait', name: 'direct', direction: 'supports', evidence_quote: 'that is plainly put' }] });
   };
   const seen = [];
   const out = await digestText(dstore, dstub, 'A', { title: 'River Book', source: 'test', text: book }, (s, x) => seen.push(s));
@@ -242,7 +244,7 @@ import { readFile } from 'node:fs/promises';
 import { makeRecorder, readRecords } from '../src/lib/records.js';
 import { EXPORTS, buildCsv, toCsv, dictionaryMarkdown } from '../src/research/exports.js';
 import { humanComparisonMarkdown, HUMAN_AREAS } from '../src/research/human.js';
-import { freshRegistry, createFinding, editFinding, reviseFinding, testFinding, verifyLocks, current, evaluate, feedExperiment, ensureDefaultFindings, generateHypotheses, normalizeProposal } from '../src/research/findings.js';
+import { makeRegistry, freshRegistry, createFinding, editFinding, reviseFinding, testFinding, verifyLocks, current, evaluate, feedExperiment, ensureDefaultFindings, generateHypotheses, normalizeProposal } from '../src/research/findings.js';
 import { runExperiment as runIsolation, CONDITIONS as ISO_CONDITIONS } from '../src/research/experiments.js';
 import { METRICS, aggregateStats } from '../src/research/metrics.js';
 
@@ -328,18 +330,18 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert.throws(() => normalizeProposal({ statement: 's', metric: { name: 'vibes' }, prediction: { text: 'p' }, refutedIf: 'r' }), /design/);
   const custom = createFinding(reg, { statement: 'Order of reading changes traits.', metric: { name: 'custom' }, prediction: { text: 'Reversing the order changes the top trait.' }, refutedIf: 'Same top trait in both orders.', design: 'Run two agents with reversed reading order.', suggestedBy: ['r1'] });
   assert(custom.needsExperiment && !custom.computable); assert.throws(() => testFinding(reg, custom.id, {}), /needs an experiment/);
-  const mkMem = matches => { const m = freshTalkMemory('A'); m.selfTests = matches.map(x => ({ match: x })); return m; };
-  const mkReplies = (n, ask) => Array.from({ length: n }, (_, i) => [{ role: 'user', text: 'q', turn: i + 1 }, { role: 'assistant', text: ask ? 'Why?' : 'Fine.', turn: i + 1, monologue: { candidates: [] } }]).flat();
+  const mkMem = matches => { const m = freshTalkMemory('A'); m.selfTests = matches.map(x => ({ match: x, at: '2026-06-01T00:00:00Z' })); return m; };
+  const mkReplies = (n, ask) => Array.from({ length: n }, (_, i) => [{ role: 'user', text: 'q', turn: i + 1 }, { role: 'assistant', text: ask ? 'Why?' : 'Fine.', turn: i + 1, at: '2026-06-01T00:00:00Z', monologue: { candidates: [] } }]).flat();
   const few = freshTalkMemory('A'); few.archive = mkReplies(3, false);
   const lowN = testFinding(reg, f.id, { A: few, B: freshTalkMemory('B') }, '2026-01-02T00:00:00Z');
-  assert.equal(lowN.status, 'inconclusive', 'too few observations is inconclusive, not supported'); assert.equal(lowN.results[0].n, 3);
+  assert.equal(lowN.status, 'inconclusive', 'too few observations is inconclusive, never a pilot label'); assert.equal(lowN.results[0].n, 3);
   const many = freshTalkMemory('A'); many.archive = mkReplies(6, false);
-  assert.equal(testFinding(reg, f.id, { A: many, B: freshTalkMemory('B') }).status, 'supported');
+  assert.equal(testFinding(reg, f.id, { A: many, B: freshTalkMemory('B') }).status, 'pilot-consistent');
   const askers = freshTalkMemory('A'); askers.archive = mkReplies(6, true);
   const refuted = testFinding(reg, f.id, { A: askers, B: freshTalkMemory('B') }, '2026-01-03T00:00:00Z');
-  assert.equal(refuted.status, 'refuted'); assert.equal(refuted.results.length, 3);
+  assert.equal(refuted.status, 'pilot-inconsistent'); assert.equal(refuted.results.length, 3);
   assert(refuted.results.every(r => r.n >= 3 && r.at && r.outcome && 'value' in r), 'results store the number, sample size, and date');
-  assert.throws(() => testFinding(reg, f.id, { A: freshTalkMemory('A'), B: freshTalkMemory('B') }), /no data/);
+  assert.throws(() => testFinding(reg, f.id, { A: freshTalkMemory('A'), B: freshTalkMemory('B') }), /no data/i);
   // no edits after data
   for (const k of ['prediction', 'statement', 'metric', 'refutedIf', 'results', 'status']) assert.throws(() => editFinding(reg, f.id, { [k]: 'x' }), /locked/, `${k} cannot be edited`);
   assert.deepEqual(verifyLocks(reg), []);
@@ -351,9 +353,9 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert.equal(reg.findings.find(x => x.id === f.id && x.version === 1).prediction.value, 0.3, 'the old version keeps its original prediction');
   assert.deepEqual(verifyLocks(reg), []);
   assert.equal(editFinding(reg, f.id, { humanArea: 'theory-of-mind' }).humanArea, 'theory-of-mind', 'descriptive fields can change');
-  const sp = createFinding(reg, { statement: 's', metric: { name: 'selfpredict_accuracy', agent: 'A' }, prediction: { comparator: '>', value: 0.5, minN: 2 } });
-  assert.equal(testFinding(reg, sp.id, { A: mkMem(['yes', 'yes', 'no']), B: freshTalkMemory('B') }).status, 'supported');
-  assert.deepEqual(aggregateStats({ A: mkMem(['yes', 'no']), B: freshTalkMemory('B') })['selfpredict_accuracy[A]'], { value: 0.5, n: 2 });
+  const sp = createFinding(reg, { statement: 's', metric: { name: 'selfpredict_accuracy', agent: 'A' }, prediction: { comparator: '>', value: 0.5, minN: 2 } }, '2026-01-01T00:00:00Z');
+  assert.equal(testFinding(reg, sp.id, { A: mkMem(['yes', 'yes', 'no']), B: freshTalkMemory('B') }).status, 'pilot-consistent');
+  assert.deepEqual(aggregateStats({ A: mkMem(['yes', 'no']), B: freshTalkMemory('B') })['selfpredict_accuracy[A]'], { value: 0.5, n: 2, invalid: 0 });
   // hypothesis generation: the model proposes, code validates and locks
   const mems = { A: askers, B: freshTalkMemory('B') };
   const records = [{ id: 'rX1', type: 'turn' }, { id: 'rX2', type: 'self_test' }];
@@ -368,7 +370,7 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert.deepEqual(gen.created[0].suggestedBy, ['rX1'], 'unknown record ids are dropped');
   assert(gen.created.every(h => h.status === 'proposed' && h.lockedAt && h.origin === 'model'));
   await assert.rejects(() => generateHypotheses(freshRegistry(), async () => '{}', { mems: { A: freshTalkMemory('A'), B: freshTalkMemory('B') }, records: [] }), /Not enough recorded data/);
-  assert.equal(ensureDefaultFindings(reg).length, 3); assert.equal(ensureDefaultFindings(reg).length, 0, 'default experiment findings are created once');
+  assert.equal(ensureDefaultFindings(reg).length, 4); assert.equal(ensureDefaultFindings(reg).length, 0, 'default experiment findings are created once');
   const fed = feedExperiment(reg, { runId: 'xT', conditions: {} });
   assert.deepEqual(fed, [], 'a run with no usable data feeds nothing');
   console.log('findings lifecycle ok');
@@ -377,10 +379,10 @@ const research = th2 => async ({ system, messages, user, meta }) => {
 // isolation experiment presets
 {
   const d = await mkdtemp(join(tmpdir(), 'exp-'));
-  const rec = makeRecorder(d), registryFile = join(d, 'findings.json');
+  const rec = makeRecorder(d), registryFile = join(d, 'findings.json'), registry = makeRegistry(registryFile);
   const calls = {};
   const run = await runIsolation(cond => { const base = rec.wrapLLM(research(th), `exp-${cond}`); return async c => { calls[cond] = (calls[cond] || 0) + 1; return base(c); }; },
-    { dataDir: d, steps: 2, every: 1, record: (t, p) => rec.log(t, null, p), registryFile });
+    { dataDir: d, steps: 2, every: 1, record: (t, p) => rec.log(t, null, p), registry });
   assert.deepEqual(Object.keys(run.conditions), Object.keys(ISO_CONDITIONS));
   for (const [c, r] of Object.entries(run.conditions)) {
     assert.deepEqual(r.checkpoints.map(x => x.step), [0, 1, 2], `${c} is checked at the same fixed steps`);
@@ -395,11 +397,11 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert(calls.baseline < calls.social, 'the baseline agent gets no stimulus calls');
   assert.equal(JSON.parse(await readFile(join(d, 'experiments', run.runId, 'result.json'), 'utf8')).runId, run.runId);
   const reg = JSON.parse(await readFile(registryFile, 'utf8'));
-  assert.equal(reg.findings.filter(f => f.origin === 'code').length, 3, 'experiment findings were pre-registered');
-  assert(run.fedFindings.length === 3 && reg.findings.every(f => f.results.length === 1 && f.results[0].runId === run.runId), 'results feed the registry automatically');
-  assert(reg.findings.every(f => f.status === 'inconclusive'), 'one run is an anecdote: below minN it stays inconclusive');
+  assert.equal(reg.findings.filter(f => f.origin === 'code').length, 4, 'experiment findings were pre-registered');
+  assert(run.fedFindings.length === 3 && reg.findings.filter(f => f.results.length).length === 3 && reg.findings.filter(f => f.results.length).every(f => f.results.length === 1 && f.results[0].runId === run.runId), 'results feed the registry automatically (the lesson finding is fed by lesson runs only)');
+  assert(reg.findings.filter(f => f.results.length).every(f => f.status === 'inconclusive'), 'one run is an anecdote: below minN it stays inconclusive');
   assert.deepEqual(verifyLocks(reg), []);
-  for (const f of reg.findings) { const m = METRICS[f.metric.name]; assert.equal(m.source, 'experiment'); assert(f.lockedAt <= f.results[0].at, 'the prediction was locked before the data'); }
+  for (const f of reg.findings) { const m = METRICS[f.metric.name]; assert.equal(m.source, 'experiment'); if (f.results.length) assert(f.lockedAt <= f.results[0].at, 'the prediction was locked before the data'); }
   const recs2 = await (async () => { await rec.flush(); return readRecords(d); })();
   assert(recs2.some(r => r.type === 'experiment' && r.payload.event === 'start') && recs2.some(r => r.type === 'experiment' && r.payload.event === 'finish'));
   assert(recs2.some(r => r.type === 'digest' && r.payload.experiment?.condition === 'isolated'), 'experiment activity is in the record, tagged with its condition');

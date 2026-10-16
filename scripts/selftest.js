@@ -307,8 +307,12 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert(buildCsv('conversations', recs).includes(',spoken,'), 'spoken input is marked');
   assert.equal(toCsv([['a', ''], ['b', '']], [['x,y', 'say "hi"\nnow'], ['=SUM(1)', null]]), 'a,b\r\n"x,y","say ""hi""\nnow"\r\n\'=SUM(1),\r\n', 'CSV quoting and formula safety');
   assert.throws(() => buildCsv('nope', recs));
-  assert.equal(await readFile('docs/DATA_DICTIONARY.md', 'utf8'), dictionaryMarkdown(), 'docs/DATA_DICTIONARY.md is current (run npm run docs)');
-  assert.equal(await readFile('docs/HUMAN_COMPARISON.md', 'utf8'), humanComparisonMarkdown(), 'docs/HUMAN_COMPARISON.md is current (run npm run docs)');
+  assert.equal((await readFile('docs/DATA_DICTIONARY.md', 'utf8')).replace(/
+/g, '
+'), dictionaryMarkdown(), 'docs/DATA_DICTIONARY.md is current (run npm run docs)');
+  assert.equal((await readFile('docs/HUMAN_COMPARISON.md', 'utf8')).replace(/
+/g, '
+'), humanComparisonMarkdown(), 'docs/HUMAN_COMPARISON.md is current (run npm run docs)');
   for (const [name, e] of Object.entries(EXPORTS)) for (const [c] of e.columns) assert((await readFile('docs/DATA_DICTIONARY.md', 'utf8')).includes(`| ${c} |`), `${name}.${c} is documented`);
   for (const [k, a] of Object.entries(HUMAN_AREAS)) { assert(a.citations.length && a.humans && a.stebula && a.difference, `${k} is complete`); }
   assert((await readFile('docs/HUMAN_COMPARISON.md', 'utf8')).split('\n').filter(l => /^- .*\(verify\)$/.test(l)).length === Object.values(HUMAN_AREAS).reduce((n, a) => n + a.citations.length, 0), 'every citation is marked verify');

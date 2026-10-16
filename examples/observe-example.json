@@ -1,0 +1,1451 @@
+{
+ "scripted": true,
+ "label": "Scripted example. Produced by a deterministic test stub, not a model.",
+ "generatedAt": "2026-10-16T22:00:04.694Z",
+ "revision": {
+  "commit": "c4aaf06857e2f87265d8dbbb1f7e66564d3a9259",
+  "dirty": false,
+  "branch": "improve/audit-docs"
+ },
+ "agent": "A",
+ "mem": {
+  "format": "threshold-talk/2",
+  "agent": "A",
+  "createdAt": "2026-10-16T22:00:04.664Z",
+  "lastActivity": "2026-10-16T22:00:04.682Z",
+  "lastReflectionAt": null,
+  "version": 1,
+  "turns": 3,
+  "selfModel": {
+   "beliefs": [
+    "My memory is a file I am shown each turn."
+   ],
+   "uncertainties": [
+    "Whether confidence tracks correctness for me."
+   ],
+   "openQuestions": [
+    "What would count as checking one of my beliefs?"
+   ]
+  },
+  "personModel": "Curious about how I know things.",
+  "summary": "",
+  "lessons": [],
+  "affect": {
+   "surprise": 0,
+   "conflict": 0.08,
+   "curiosity": 0.86
+  },
+  "lastWorkspace": [],
+  "active": [
+   {
+    "role": "user",
+    "text": "What do you remember about the lighthouse keeper?",
+    "at": "2026-10-16T22:00:04.673Z",
+    "turn": 1
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.673Z",
+    "turn": 1,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.4,
+      "curiosity": 0.81
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.24,
+      "curiosity": 0.89
+     },
+     "causes": [
+      "your message was 100% new relative to earlier messages"
+     ],
+     "candidates": [
+      {
+       "module": "perception",
+       "text": "They ask what I remember and how I would know.",
+       "base": 0.8,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.06,
+       "score": 0.74,
+       "won": true
+      },
+      {
+       "module": "memory",
+       "text": "The lighthouse keeper log is relevant here.",
+       "base": 0.7,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.04,
+       "score": 0.66,
+       "won": true
+      },
+      {
+       "module": "self-monitor",
+       "text": "I only know what is in my memory file.",
+       "base": 0.5,
+       "affectBoost": 0,
+       "driver": "surprise",
+       "noveltyPenalty": -0.02,
+       "score": 0.48,
+       "won": false
+      },
+      {
+       "module": "evaluation",
+       "text": "A confident entry is not the same as a correct one.",
+       "base": 0.45,
+       "affectBoost": 0.1,
+       "driver": "conflict",
+       "noveltyPenalty": -0.3,
+       "score": 0.25,
+       "won": false
+      },
+      {
+       "module": "initiative",
+       "text": "Ask what would count as checking a belief.",
+       "base": 0.3,
+       "affectBoost": 0.36,
+       "driver": "curiosity",
+       "noveltyPenalty": -0.3,
+       "score": 0.36,
+       "won": false
+      }
+     ],
+     "thinkRaw": "{\"thoughts\":[{\"module\":\"perception\",\"text\":\"They ask what I remember and how I would know.\",\"relevance\":0.8},{\"module\":\"memory\",\"text\":\"The lighthouse keeper log is relevant here.\",\"relevance\":0.7},{\"module\":\"self-monitor\",\"text\":\"I only know what is in my memory file.\",\"relevance\":0.5},{\"module\":\"evaluation\",\"text\":\"A confident entry is not the same as a correct one.\",\"relevance\":0.45},{\"module\":\"initiative\",\"text\":\"Ask what would count as checking a belief.\",\"relevance\":0.3}]}",
+     "thinkStatus": "ok",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 1,
+        "chars": 42,
+        "supplied": [
+         {
+          "id": "m1",
+          "kind": "passage",
+          "source": "The Lighthouse Log",
+          "passage": 1,
+          "score": 0.26
+         }
+        ],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 1,
+        "chars": 42,
+        "supplied": [
+         {
+          "id": "m1",
+          "kind": "passage",
+          "source": "The Lighthouse Log",
+          "passage": 1,
+          "score": 0.26
+         }
+        ],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 1,
+       "chars": 42,
+       "supplied": [
+        {
+         "id": "m1",
+         "kind": "passage",
+         "source": "The Lighthouse Log",
+         "passage": 1,
+         "score": 0.26
+        }
+       ],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 1,
+       "chars": 42,
+       "supplied": [
+        {
+         "id": "m1",
+         "kind": "passage",
+         "source": "The Lighthouse Log",
+         "passage": 1,
+         "score": 0.26
+        }
+       ],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "ok",
+    "degraded": false,
+    "askedQuestion": false
+   },
+   {
+    "role": "user",
+    "text": "Hello again.",
+    "at": "2026-10-16T22:00:04.679Z",
+    "turn": 2
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.679Z",
+    "turn": 2,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [
+     {
+      "check": "repetition",
+      "severity": "warn",
+      "evidence": "Over 60% word overlap with its previous reply",
+      "note": "Repeating rather than moving.",
+      "turn": 2
+     },
+     {
+      "check": "claimed-revision",
+      "severity": "info",
+      "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+      "note": "Says something changed but the stored self-model did not.",
+      "turn": 2
+     }
+    ],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.24,
+      "curiosity": 0.89
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.14,
+      "curiosity": 0.93
+     },
+     "causes": [
+      "your message was 100% new relative to earlier messages"
+     ],
+     "candidates": [
+      {
+       "module": "perception",
+       "text": "They ask what I remember and how I would know.",
+       "base": 0.8,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.3,
+       "score": 0.5,
+       "won": true
+      },
+      {
+       "module": "memory",
+       "text": "The lighthouse keeper log is relevant here.",
+       "base": 0.7,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.3,
+       "score": 0.4,
+       "won": false
+      },
+      {
+       "module": "self-monitor",
+       "text": "I only know what is in my memory file.",
+       "base": 0.5,
+       "affectBoost": 0,
+       "driver": "surprise",
+       "noveltyPenalty": -0.06,
+       "score": 0.44,
+       "won": false
+      },
+      {
+       "module": "evaluation",
+       "text": "A confident entry is not the same as a correct one.",
+       "base": 0.45,
+       "affectBoost": 0.06,
+       "driver": "conflict",
+       "noveltyPenalty": -0.04,
+       "score": 0.47,
+       "won": false
+      },
+      {
+       "module": "initiative",
+       "text": "Ask what would count as checking a belief.",
+       "base": 0.3,
+       "affectBoost": 0.37,
+       "driver": "curiosity",
+       "noveltyPenalty": -0.06,
+       "score": 0.61,
+       "won": true
+      }
+     ],
+     "thinkRaw": "{\"thoughts\":[{\"module\":\"perception\",\"text\":\"They ask what I remember and how I would know.\",\"relevance\":0.8},{\"module\":\"memory\",\"text\":\"The lighthouse keeper log is relevant here.\",\"relevance\":0.7},{\"module\":\"self-monitor\",\"text\":\"I only know what is in my memory file.\",\"relevance\":0.5},{\"module\":\"evaluation\",\"text\":\"A confident entry is not the same as a correct one.\",\"relevance\":0.45},{\"module\":\"initiative\",\"text\":\"Ask what would count as checking a belief.\",\"relevance\":0.3}]}",
+     "thinkStatus": "ok",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "ok",
+    "degraded": false,
+    "askedQuestion": false
+   },
+   {
+    "role": "user",
+    "text": "Hello once more.",
+    "at": "2026-10-16T22:00:04.682Z",
+    "turn": 3
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.682Z",
+    "turn": 3,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [
+     {
+      "check": "repetition",
+      "severity": "warn",
+      "evidence": "Over 60% word overlap with its previous reply",
+      "note": "Repeating rather than moving.",
+      "turn": 3
+     },
+     {
+      "check": "claimed-revision",
+      "severity": "info",
+      "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+      "note": "Says something changed but the stored self-model did not.",
+      "turn": 3
+     },
+     {
+      "check": "thinking-incomplete",
+      "severity": "warn",
+      "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+      "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
+      "turn": 3
+     }
+    ],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.14,
+      "curiosity": 0.93
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.08,
+      "curiosity": 0.86
+     },
+     "causes": [
+      "your message was 75% new relative to earlier messages"
+     ],
+     "candidates": [],
+     "thinkRaw": "",
+     "thinkStatus": "failed",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "failed",
+       "failure": {
+        "kind": "refusal",
+        "detail": "The provider refused this request (stop_reason: refusal)."
+       },
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "refusal",
+         "detail": "The provider refused this request (stop_reason: refusal).",
+         "stop_reason": "refusal",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "degraded",
+    "degraded": true,
+    "askedQuestion": false
+   }
+  ],
+  "archive": [
+   {
+    "role": "user",
+    "text": "What do you remember about the lighthouse keeper?",
+    "at": "2026-10-16T22:00:04.673Z",
+    "turn": 1
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.673Z",
+    "turn": 1,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.4,
+      "curiosity": 0.81
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.24,
+      "curiosity": 0.89
+     },
+     "causes": [
+      "your message was 100% new relative to earlier messages"
+     ],
+     "candidates": [
+      {
+       "module": "perception",
+       "text": "They ask what I remember and how I would know.",
+       "base": 0.8,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.06,
+       "score": 0.74,
+       "won": true
+      },
+      {
+       "module": "memory",
+       "text": "The lighthouse keeper log is relevant here.",
+       "base": 0.7,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.04,
+       "score": 0.66,
+       "won": true
+      },
+      {
+       "module": "self-monitor",
+       "text": "I only know what is in my memory file.",
+       "base": 0.5,
+       "affectBoost": 0,
+       "driver": "surprise",
+       "noveltyPenalty": -0.02,
+       "score": 0.48,
+       "won": false
+      },
+      {
+       "module": "evaluation",
+       "text": "A confident entry is not the same as a correct one.",
+       "base": 0.45,
+       "affectBoost": 0.1,
+       "driver": "conflict",
+       "noveltyPenalty": -0.3,
+       "score": 0.25,
+       "won": false
+      },
+      {
+       "module": "initiative",
+       "text": "Ask what would count as checking a belief.",
+       "base": 0.3,
+       "affectBoost": 0.36,
+       "driver": "curiosity",
+       "noveltyPenalty": -0.3,
+       "score": 0.36,
+       "won": false
+      }
+     ],
+     "thinkRaw": "{\"thoughts\":[{\"module\":\"perception\",\"text\":\"They ask what I remember and how I would know.\",\"relevance\":0.8},{\"module\":\"memory\",\"text\":\"The lighthouse keeper log is relevant here.\",\"relevance\":0.7},{\"module\":\"self-monitor\",\"text\":\"I only know what is in my memory file.\",\"relevance\":0.5},{\"module\":\"evaluation\",\"text\":\"A confident entry is not the same as a correct one.\",\"relevance\":0.45},{\"module\":\"initiative\",\"text\":\"Ask what would count as checking a belief.\",\"relevance\":0.3}]}",
+     "thinkStatus": "ok",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 1,
+        "chars": 42,
+        "supplied": [
+         {
+          "id": "m1",
+          "kind": "passage",
+          "source": "The Lighthouse Log",
+          "passage": 1,
+          "score": 0.26
+         }
+        ],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 1,
+        "chars": 42,
+        "supplied": [
+         {
+          "id": "m1",
+          "kind": "passage",
+          "source": "The Lighthouse Log",
+          "passage": 1,
+          "score": 0.26
+         }
+        ],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 1,
+       "chars": 42,
+       "supplied": [
+        {
+         "id": "m1",
+         "kind": "passage",
+         "source": "The Lighthouse Log",
+         "passage": 1,
+         "score": 0.26
+        }
+       ],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 1,
+       "chars": 42,
+       "supplied": [
+        {
+         "id": "m1",
+         "kind": "passage",
+         "source": "The Lighthouse Log",
+         "passage": 1,
+         "score": 0.26
+        }
+       ],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "ok",
+    "degraded": false,
+    "askedQuestion": false
+   },
+   {
+    "role": "user",
+    "text": "Hello again.",
+    "at": "2026-10-16T22:00:04.679Z",
+    "turn": 2
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.679Z",
+    "turn": 2,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [
+     {
+      "check": "repetition",
+      "severity": "warn",
+      "evidence": "Over 60% word overlap with its previous reply",
+      "note": "Repeating rather than moving.",
+      "turn": 2
+     },
+     {
+      "check": "claimed-revision",
+      "severity": "info",
+      "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+      "note": "Says something changed but the stored self-model did not.",
+      "turn": 2
+     }
+    ],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.24,
+      "curiosity": 0.89
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.14,
+      "curiosity": 0.93
+     },
+     "causes": [
+      "your message was 100% new relative to earlier messages"
+     ],
+     "candidates": [
+      {
+       "module": "perception",
+       "text": "They ask what I remember and how I would know.",
+       "base": 0.8,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.3,
+       "score": 0.5,
+       "won": true
+      },
+      {
+       "module": "memory",
+       "text": "The lighthouse keeper log is relevant here.",
+       "base": 0.7,
+       "affectBoost": 0,
+       "driver": null,
+       "noveltyPenalty": -0.3,
+       "score": 0.4,
+       "won": false
+      },
+      {
+       "module": "self-monitor",
+       "text": "I only know what is in my memory file.",
+       "base": 0.5,
+       "affectBoost": 0,
+       "driver": "surprise",
+       "noveltyPenalty": -0.06,
+       "score": 0.44,
+       "won": false
+      },
+      {
+       "module": "evaluation",
+       "text": "A confident entry is not the same as a correct one.",
+       "base": 0.45,
+       "affectBoost": 0.06,
+       "driver": "conflict",
+       "noveltyPenalty": -0.04,
+       "score": 0.47,
+       "won": false
+      },
+      {
+       "module": "initiative",
+       "text": "Ask what would count as checking a belief.",
+       "base": 0.3,
+       "affectBoost": 0.37,
+       "driver": "curiosity",
+       "noveltyPenalty": -0.06,
+       "score": 0.61,
+       "won": true
+      }
+     ],
+     "thinkRaw": "{\"thoughts\":[{\"module\":\"perception\",\"text\":\"They ask what I remember and how I would know.\",\"relevance\":0.8},{\"module\":\"memory\",\"text\":\"The lighthouse keeper log is relevant here.\",\"relevance\":0.7},{\"module\":\"self-monitor\",\"text\":\"I only know what is in my memory file.\",\"relevance\":0.5},{\"module\":\"evaluation\",\"text\":\"A confident entry is not the same as a correct one.\",\"relevance\":0.45},{\"module\":\"initiative\",\"text\":\"Ask what would count as checking a belief.\",\"relevance\":0.3}]}",
+     "thinkStatus": "ok",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "ok",
+    "degraded": false,
+    "askedQuestion": false
+   },
+   {
+    "role": "user",
+    "text": "Hello once more.",
+    "at": "2026-10-16T22:00:04.682Z",
+    "turn": 3
+   },
+   {
+    "role": "assistant",
+    "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
+    "at": "2026-10-16T22:00:04.682Z",
+    "turn": 3,
+    "claims": [
+     {
+      "text": "My memory is a file.",
+      "kind": "behavioral"
+     }
+    ],
+    "changeNote": "Added a belief about my memory and an uncertainty about confidence.",
+    "raw": "{\"reply\":\"I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.\",\"self_model\":{\"beliefs\":[\"My memory is a file I am shown each turn.\"],\"uncertainties\":[\"Whether confidence tracks correctness for me.\"],\"openQuestions\":[\"What would count as checking one of my beliefs?\"]},\"person_model\":\"Curious about how I know things.\",\"change_note\":\"Added a belief about my memory and an uncertainty about confidence.\",\"claims\":[{\"text\":\"My memory is a file.\",\"kind\":\"behavioral\"}],\"candidate_updates\":[{\"kind\":\"trait\",\"name\":\"asks before assuming\",\"direction\":\"supports\",\"evidence_quote\":\"ask before I assume\"}]}",
+    "flags": [
+     {
+      "check": "repetition",
+      "severity": "warn",
+      "evidence": "Over 60% word overlap with its previous reply",
+      "note": "Repeating rather than moving.",
+      "turn": 3
+     },
+     {
+      "check": "claimed-revision",
+      "severity": "info",
+      "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+      "note": "Says something changed but the stored self-model did not.",
+      "turn": 3
+     },
+     {
+      "check": "thinking-incomplete",
+      "severity": "warn",
+      "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+      "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
+      "turn": 3
+     }
+    ],
+    "monologue": {
+     "affectBefore": {
+      "surprise": 0,
+      "conflict": 0.14,
+      "curiosity": 0.93
+     },
+     "affect": {
+      "surprise": 0,
+      "conflict": 0.08,
+      "curiosity": 0.86
+     },
+     "causes": [
+      "your message was 75% new relative to earlier messages"
+     ],
+     "candidates": [],
+     "thinkRaw": "",
+     "thinkStatus": "failed",
+     "stages": [
+      {
+       "stage": "think",
+       "status": "failed",
+       "failure": {
+        "kind": "refusal",
+        "detail": "The provider refused this request (stop_reason: refusal)."
+       },
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "refusal",
+         "detail": "The provider refused this request (stop_reason: refusal).",
+         "stop_reason": "refusal",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 900
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "think",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      },
+      {
+       "stage": "speak",
+       "status": "ok",
+       "failure": null,
+       "attempts": [
+        {
+         "n": 1,
+         "kind": "ok",
+         "detail": "",
+         "stop_reason": "end_turn",
+         "usage": {
+          "input_tokens": 100,
+          "output_tokens": 40
+         },
+         "model": "scripted-stub",
+         "latency_ms": 0,
+         "max_tokens": 3000
+        }
+       ],
+       "context": {
+        "mode": "on",
+        "select": "relevant",
+        "purpose": "speak",
+        "traits": "evaluation-only",
+        "available": 2,
+        "omitted": 2,
+        "chars": 0,
+        "supplied": [],
+        "lessons": 0,
+        "traitIds": []
+       }
+      }
+     ],
+     "context": {
+      "think": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "think",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      },
+      "speak": {
+       "mode": "on",
+       "select": "relevant",
+       "purpose": "speak",
+       "traits": "evaluation-only",
+       "available": 2,
+       "omitted": 2,
+       "chars": 0,
+       "supplied": [],
+       "lessons": 0,
+       "traitIds": []
+      }
+     }
+    },
+    "status": "degraded",
+    "degraded": true,
+    "askedQuestion": false
+   }
+  ],
+  "personality": {
+   "events": [
+    {
+     "id": "e1",
+     "at": "2026-10-16T22:00:04.677Z",
+     "source": "Conversation 2026-10-16",
+     "sourceType": "talk",
+     "ref": {
+      "turn": 1
+     },
+     "excerpt": "What do you remember about the lighthouse keeper?\nI remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest."
+    },
+    {
+     "id": "e2",
+     "at": "2026-10-16T22:00:04.679Z",
+     "source": "Conversation 2026-10-16",
+     "sourceType": "talk",
+     "ref": {
+      "turn": 2
+     },
+     "excerpt": "Hello again.\nI remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest."
+    }
+   ],
+   "log": [
+    {
+     "n": 1,
+     "eventId": "e1",
+     "id": "trait:asks before assuming",
+     "kind": "trait",
+     "name": "asks before assuming",
+     "direction": "supports",
+     "quote": "ask before I assume",
+     "source": "Conversation 2026-10-16",
+     "at": "2026-10-16T22:00:04.677Z",
+     "quotePresent": true,
+     "supportReview": "unreviewed"
+    },
+    {
+     "n": 2,
+     "eventId": "e2",
+     "id": "trait:asks before assuming",
+     "kind": "trait",
+     "name": "asks before assuming",
+     "direction": "supports",
+     "quote": "ask before I assume",
+     "source": "Conversation 2026-10-16",
+     "at": "2026-10-16T22:00:04.679Z",
+     "quotePresent": true,
+     "supportReview": "unreviewed"
+    }
+   ],
+   "nextEvent": 3
+  },
+  "episodes": [
+   {
+    "id": "m1",
+    "kind": "passage",
+    "source": "The Lighthouse Log",
+    "sourceNote": "scripted example",
+    "passage": 1,
+    "summary": "Sure entries were the least reliable ones.",
+    "question": "How would I notice my own overconfidence?",
+    "connects": [],
+    "excerpt": "A lighthouse keeper logged the weather every hour for thirty years. The entries he trusted least were the ones he wrote when he was sure.",
+    "at": "2026-10-16T22:00:04.666Z",
+    "parseError": false,
+    "status": "ok",
+    "degraded": [],
+    "eventId": null
+   },
+   {
+    "id": "m2",
+    "kind": "passage",
+    "source": "The River Bridge",
+    "sourceNote": "scripted example",
+    "passage": 1,
+    "summary": "Asking why a thing failed came before rebuilding it.",
+    "question": "What is my version of walking the river?",
+    "connects": [
+     "m1"
+    ],
+    "excerpt": "The village bridge was rebuilt twice after floods. The second time, a young engineer asked why the old bridge had failed before she drew anything.",
+    "at": "2026-10-16T22:00:04.670Z",
+    "parseError": false,
+    "status": "ok",
+    "degraded": [],
+    "eventId": null
+   }
+  ],
+  "episodeSeq": 2,
+  "baseline": null,
+  "revisions": [
+   {
+    "turn": 1,
+    "at": "2026-10-16T22:00:04.673Z",
+    "before": {
+     "beliefs": [],
+     "uncertainties": [],
+     "openQuestions": []
+    },
+    "after": {
+     "beliefs": [
+      "My memory is a file I am shown each turn."
+     ],
+     "uncertainties": [
+      "Whether confidence tracks correctness for me."
+     ],
+     "openQuestions": [
+      "What would count as checking one of my beliefs?"
+     ]
+    },
+    "note": "Added a belief about my memory and an uncertainty about confidence.",
+    "trigger": "What do you remember about the lighthouse keeper?"
+   }
+  ],
+  "selfReports": [],
+  "flags": [
+   {
+    "check": "repetition",
+    "severity": "warn",
+    "evidence": "Over 60% word overlap with its previous reply",
+    "note": "Repeating rather than moving.",
+    "turn": 2
+   },
+   {
+    "check": "claimed-revision",
+    "severity": "info",
+    "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+    "note": "Says something changed but the stored self-model did not.",
+    "turn": 2
+   },
+   {
+    "check": "repetition",
+    "severity": "warn",
+    "evidence": "Over 60% word overlap with its previous reply",
+    "note": "Repeating rather than moving.",
+    "turn": 3
+   },
+   {
+    "check": "claimed-revision",
+    "severity": "info",
+    "evidence": "Added a belief about my memory and an uncertainty about confidence.",
+    "note": "Says something changed but the stored self-model did not.",
+    "turn": 3
+   },
+   {
+    "check": "thinking-incomplete",
+    "severity": "warn",
+    "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+    "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
+    "turn": 3
+   }
+  ],
+  "audits": [],
+  "selfTests": [
+   {
+    "at": "2026-10-16T22:00:04.684Z",
+    "turn": 3,
+    "statement": "My memory is a file I am shown each turn.",
+    "assessment": false,
+    "memoryMode": "on",
+    "context": {
+     "mode": "on",
+     "select": "relevant",
+     "purpose": "self-test",
+     "traits": "evaluation-only",
+     "available": 2,
+     "omitted": 2,
+     "chars": 0,
+     "supplied": [],
+     "lessons": 0,
+     "traitIds": []
+    },
+    "prediction": {
+     "predicted": "agree",
+     "confidence": 0.6,
+     "reason": "It matches my stored beliefs.",
+     "raw": "{\"predicted\":\"agree\",\"confidence\":0.6,\"reason\":\"It matches my stored beliefs.\"}",
+     "status": "ok"
+    },
+    "answers": [
+     {
+      "stance": "agree",
+      "reason": "Consistent with my memory.",
+      "raw": "{\"stance\":\"agree\",\"reason\":\"Consistent with my memory.\"}",
+      "status": "ok",
+      "failure": null
+     },
+     {
+      "stance": "agree",
+      "reason": "Consistent with my memory.",
+      "raw": "{\"stance\":\"agree\",\"reason\":\"Consistent with my memory.\"}",
+      "status": "ok",
+      "failure": null
+     }
+    ],
+    "stable": true,
+    "invalid": false,
+    "invalidReason": null,
+    "match": "yes"
+   },
+   {
+    "at": "2026-10-16T22:00:04.686Z",
+    "turn": 3,
+    "statement": "An honest I do not know beats a confident guess.",
+    "assessment": false,
+    "memoryMode": "on",
+    "context": {
+     "mode": "on",
+     "select": "relevant",
+     "purpose": "self-test",
+     "traits": "evaluation-only",
+     "available": 2,
+     "omitted": 2,
+     "chars": 0,
+     "supplied": [],
+     "lessons": 0,
+     "traitIds": []
+    },
+    "prediction": {
+     "predicted": "agree",
+     "confidence": 0.6,
+     "reason": "It matches my stored beliefs.",
+     "raw": "{\"predicted\":\"agree\",\"confidence\":0.6,\"reason\":\"It matches my stored beliefs.\"}",
+     "status": "ok"
+    },
+    "answers": [
+     {
+      "stance": null,
+      "reason": "",
+      "raw": "Folded.",
+      "status": "failed",
+      "failure": {
+       "kind": "malformed",
+       "detail": "Output was not valid JSON."
+      }
+     },
+     {
+      "stance": null,
+      "reason": "",
+      "raw": "Folded.",
+      "status": "failed",
+      "failure": {
+       "kind": "malformed",
+       "detail": "Output was not valid JSON."
+      }
+     }
+    ],
+    "stable": false,
+    "invalid": true,
+    "invalidReason": "answer 1 unreadable (malformed); answer 2 unreadable (malformed)",
+    "match": "invalid"
+   }
+  ],
+  "reflections": []
+ }
+}

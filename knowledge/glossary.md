@@ -17,3 +17,12 @@
 - **Self-prediction test:** Stebula predicts a fresh copy's answer, two fresh copies answer blind, code scores it.
 - **Self-report:** any claim about its own inner states. Logged as data, not evidence.
 - **Workspace:** the limited space (2 slots) that thoughts compete for. Only winners reach the answer.
+- **Assessment:** a measurement run on a snapshot of an agent's memory (for example a checkpoint self-test), stored apart from the agent's own memory so measuring never changes it.
+- **Degraded turn:** a turn where the thinking stage failed and the conversation continued without a workspace. Labeled, shown, and excluded from analysis.
+- **Exploratory:** a result measured on data that existed before its prediction was locked. It can suggest, never confirm.
+- **Memory context:** the bounded set of stored memories actually put into a model request, with ids and sources, recorded per call.
+- **Pilot label:** a descriptive status (pilot-consistent, pilot-inconsistent, inconclusive) used instead of supported or refuted. Not a significance test.
+- **Protocol hash:** a short hash of an experiment's design, predictions and parameters, written to disk before the first model call.
+- **Scripted double:** a deterministic stand-in for the model that reads only the prompt. Tests plumbing, proves nothing about a model.
+- **Since-lock:** measured only on data recorded after the finding's prediction was locked.
+- **Snapshot:** an immutable copy of an agent's memory used for an assessment.

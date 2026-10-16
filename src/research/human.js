@@ -57,7 +57,7 @@ export const humanArea = key => HUMAN_AREAS[key] || null;
 export function humanComparisonMarkdown() {
   const out = ['# Comparison to human research', '',
     'Generated from `src/research/human.js`. Every citation is marked **verify**: it was written from memory and has not been checked against the original source. Change a mark only after reading the source, and record the link here.', '',
-    'Each Stebula finding names one of these areas, and the Findings tab shows the matching panel. The comparison is a way to ask good questions, not a claim that Stebula and humans are alike.', ''];
+    'Each Stebula finding names one of these areas, and the Findings page (under Research) shows the matching panel. The comparison is a way to ask good questions, not a claim that Stebula and humans are alike.', ''];
   for (const [key, a] of Object.entries(HUMAN_AREAS)) {
     out.push(`## ${a.title} (\`${key}\`)`, '', `**What humans show.** ${a.humans}`, '', `**What Stebula shows.** ${a.stebula}`, '', `**The key difference.** ${a.difference}`, '', '**Citations (all verify):**', ...a.citations.map(c => `- ${c} (verify)`), '');
   }

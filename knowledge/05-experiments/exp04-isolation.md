@@ -1,6 +1,6 @@
 # Experiment 04: Isolation and social development
 
-Status: SPECCED (prompt 3).
+Status: BUILT (prompt 3, hardened in the audit response).
 
 ## Design
 Four variants, same checkpoints (personality questions, self-prediction tests):
@@ -10,6 +10,8 @@ Four variants, same checkpoints (personality questions, self-prediction tests):
 - Baseline: nothing
 
 Same books, same conversation scripts where possible.
+
+Checkpoints are assessments on a snapshot of each agent's memory, so assessing an agent never changes it (the baseline included). The protocol and predictions are written before the first model call. A condition with a failed step is excluded, not counted.
 
 ## Measures
 Self-model size and revision rate, trait formation speed and divergence, self-prediction accuracy, said-vs-shown gaps, initiative rate, questions asked.

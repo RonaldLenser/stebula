@@ -10,7 +10,8 @@
     "serve": "node server.js",
     "test": "node scripts/test.js",
     "batch": "node scripts/batch.js",
-    "docs": "node scripts/gen-docs.js"
+    "docs": "node scripts/gen-docs.js",
+    "example": "node scripts/make-example.js"
   },
   "engines": {
     "node": ">=18"

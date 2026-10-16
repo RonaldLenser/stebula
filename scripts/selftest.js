@@ -314,7 +314,7 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   assert.equal(lf(await readFile('docs/HUMAN_COMPARISON.md', 'utf8')), humanComparisonMarkdown(), 'docs/HUMAN_COMPARISON.md is current (run npm run docs)');
   for (const [name, e] of Object.entries(EXPORTS)) for (const [c] of e.columns) assert((await readFile('docs/DATA_DICTIONARY.md', 'utf8')).includes(`| ${c} |`), `${name}.${c} is documented`);
   for (const [k, a] of Object.entries(HUMAN_AREAS)) { assert(a.citations.length && a.humans && a.stebula && a.difference, `${k} is complete`); }
-  assert((await readFile('docs/HUMAN_COMPARISON.md', 'utf8')).split('\n').filter(l => /^- .*\(verify\)$/.test(l)).length === Object.values(HUMAN_AREAS).reduce((n, a) => n + a.citations.length, 0), 'every citation is marked verify');
+  assert((await readFile('docs/HUMAN_COMPARISON.md', 'utf8')).split(/\r?\n/).filter(l => /^- .*\(verify\)$/.test(l)).length === Object.values(HUMAN_AREAS).reduce((n, a) => n + a.citations.length, 0), 'every citation is marked verify');
   await rm(d, { recursive: true });
   console.log('research record and exports ok');
 }

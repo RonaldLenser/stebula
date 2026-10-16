@@ -4,6 +4,7 @@ import { AFFECT_DRIVES, CAPACITY, MODULES } from '/src/talk/workspace.js';
 import { emptyBrain, applyStage, brainFromMemory, signalBoosts, storedTurns } from '/src/talk/brain.js';
 import { parseSse } from '/src/talk/sse.js';
 import { initBrain, paintBrain, REGIONS } from '/brain.js';
+import { renderGrowth, initGrowth, loadCompare, setCompareApi } from '/growth.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -14,19 +15,25 @@ const sign = x => (x > 0 ? `+${x.toFixed(2)}` : x < 0 ? x.toFixed(2) : '0');
 
 // ---------- views ----------
 function show(view) {
-  const map = { exp: '#expView', talk: '#talkView', score: '#scoreView' };
+  const map = { exp: '#expView', talk: '#talkView', growth: '#growthView', compare: '#compareView', score: '#scoreView' };
   for (const [k, sel] of Object.entries(map)) $(sel).hidden = k !== view;
   $('#expControls').hidden = view !== 'exp';
   $('#viewExp').setAttribute('aria-pressed', String(view === 'exp'));
   $('#viewTalk').setAttribute('aria-pressed', String(view === 'talk'));
   $('#viewScore').setAttribute('aria-pressed', String(view === 'score'));
+  $('#viewGrowth').setAttribute('aria-pressed', String(view === 'growth'));
+  $('#viewCompare').setAttribute('aria-pressed', String(view === 'compare'));
   history.replaceState(null, '', view === 'exp' ? '#' : `#${view}`);
   if (view === 'talk') load(true);
+  if (view === 'growth') load(false);
+  if (view === 'compare') loadCompare(api).catch(e => { $('#cmpGrid').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
   if (view === 'score') scorecard();
 }
 $('#viewExp').onclick = () => show('exp');
 $('#viewTalk').onclick = () => show('talk');
 $('#viewScore').onclick = () => show('score');
+$('#viewGrowth').onclick = () => show('growth');
+$('#viewCompare').onclick = () => show('compare');
 
 // ---------- api ----------
 async function api(path, body) {
@@ -60,8 +67,9 @@ async function send() {
 }
 const STAGE_TEXT = { heard: 'Heard you. Updating the modeled signals.', affect: 'Signals updated. Five processes are proposing thoughts.', thoughts: 'Thoughts scored. Choosing what enters the workspace.', workspace: 'Workspace chosen. Composing the answer from those thoughts.', speaking: 'Answer ready. Checking the self-model.', selfmodel: 'Self-model changed. Saving.' };
 // One turn over server-sent events. Each stage repaints the brain as it arrives.
-async function streamTurn(text) {
-  const r = await fetch('/api/talk/stream', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent: S.agent, text }) });
+async function streamTurn(text) { await streamPost('stream', { agent: S.agent, text }, (stage, data) => { S.brain = applyStage(S.brain, stage, data); if (STAGE_TEXT[stage]) S.busy = STAGE_TEXT[stage]; render(); }); }
+async function streamPost(path, body, onStage) {
+  const r = await fetch(`/api/talk/${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Request failed (${r.status})`);
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '', failed = null;
@@ -72,9 +80,7 @@ async function streamTurn(text) {
     buf = p.rest;
     for (const { stage, data } of p.events) {
       if (stage === 'error') { failed = data.error || 'The turn failed.'; continue; }
-      S.brain = applyStage(S.brain, stage, data);
-      if (STAGE_TEXT[stage]) S.busy = STAGE_TEXT[stage];
-      render();
+      await onStage(stage, data);
     }
   }
   if (failed) throw new Error(failed);
@@ -112,8 +118,11 @@ function thoughtsTable(mono) {
 function render() {
   const m = S.mem;
   renderBrain();
+  if (m && !$('#growthView').hidden) renderGrowth(m);
+  renderDigestLog();
   const off = !S.live || !!S.busy;
   ['#talkSend', '#audit', '#runTest', '#reflectNow'].forEach(s => { $(s).disabled = off; });
+  $('#dRead').disabled = !S.live || !!S.busy || D.running;
   $('#mic').disabled = (off && !V.listening) || !SR;
   $('#talkAgent').disabled = !!S.busy;
   $('#talkNote').innerHTML = !S.live
@@ -225,6 +234,49 @@ function renderBrain() {
 $('#turnScrub').oninput = e => { const turns = storedTurns(S.mem); S.scrub = turns[Number(e.target.value) - 1] ?? null; if (S.scrub === lastTurn()) S.scrub = null; renderBrain(); };
 $('#scrubLive').onclick = () => { S.scrub = null; renderBrain(); };
 
+// ---------- digest ----------
+setCompareApi(api);
+initGrowth();
+const D = { rec: null, running: false, rejected: 0, status: '' };
+function renderDigestLog() {
+  const eps = (S.mem?.episodes || []).filter(e => e.kind !== 'summary').slice(-8).reverse();
+  const sums = (S.mem?.episodes || []).filter(e => e.kind === 'summary');
+  $('#dLog').innerHTML = (D.status ? `<p class="pending">${esc(D.status)}</p>` : '') +
+    (eps.length ? eps.map(e => `<div class="ep"><b>${esc(e.id)}</b> <span class="note">${esc(e.source)}, passage ${e.passage}</span><br>${esc(e.summary)}${e.question ? `<br><span class="note">Question: ${esc(e.question)}</span>` : ''}${e.connects?.length ? `<br><span class="note">Connects to ${e.connects.map(esc).join(', ')}</span>` : ''}</div>`).join('') : '<p class="empty">Nothing read yet.</p>') +
+    (sums.length ? `<p class="note">${sums.length} summary memor${sums.length > 1 ? 'ies' : 'y'} fold older passages (ids kept in the file).</p>` : '');
+}
+async function readDigest() {
+  const text = $('#dText').value.trim();
+  if (!text || D.running || S.busy || !S.live) return;
+  D.running = true; D.rejected = 0; $('#dRead').disabled = true; S.scrub = null; S.brain = emptyBrain();
+  try {
+    await streamPost('digest', { agent: S.agent, title: $('#dTitle').value, source: $('#dSource').value, text }, async (stage, data) => {
+      S.brain = applyStage(S.brain, stage, data);
+      if (stage === 'passage') D.status = `Reading passage ${data.n} of ${data.total}.`;
+      if (stage === 'personality') D.rejected += data.rejected?.length || 0;
+      if (stage === 'digested') { S.mem = (await api(`state?agent=${S.agent}`)).mem; }
+      if (stage === 'done') D.status = `Finished ${data.passages} passages.${D.rejected ? ` ${D.rejected} proposed update${D.rejected > 1 ? 's were' : ' was'} rejected because the quote was not in the text.` : ''}`;
+      render();
+    });
+    $('#dText').value = '';
+  } catch (e) { D.status = e.message; }
+  S.brain = null; D.running = false; $('#dRead').disabled = false;
+  try { S.mem = (await api(`state?agent=${S.agent}`)).mem; } catch { /* keep what we have */ }
+  render();
+}
+$('#dRead').onclick = readDigest;
+$('#dFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; $('#dText').value = await f.text(); if (!$('#dTitle').value) $('#dTitle').value = f.name.replace(/.txt$/i, ''); e.target.value = ''; };
+$('#dMic').onclick = () => {
+  if (D.rec) { D.rec.stop(); return; }
+  if (!SR) { D.status = 'Voice input needs Chrome or Edge.'; renderDigestLog(); return; }
+  const rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true;
+  const base = $('#dText').value.trim(); let finalText = '';
+  rec.onresult = ev => { let interim = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { if (ev.results[i].isFinal) finalText += `${ev.results[i][0].transcript} `; else interim += ev.results[i][0].transcript; } $('#dText').value = [base, finalText.trim(), interim].filter(Boolean).join(' '); };
+  rec.onerror = ev => { D.status = `Voice input error: ${ev.error}`; renderDigestLog(); };
+  rec.onend = () => { D.rec = null; $('#dMic').setAttribute('aria-pressed', 'false'); $('#dMic').textContent = 'Speak the text'; };
+  D.rec = rec; $('#dMic').setAttribute('aria-pressed', 'true'); $('#dMic').textContent = 'Stop listening'; rec.start();
+};
+
 // ---------- voice ----------
 // Speech in: the browser's speech recognition (Chrome and Edge send audio to their own cloud service).
 // Speech out: the browser's built-in voices. Nothing here is sent to the agent except the final text.
@@ -307,4 +359,6 @@ function scorecard() {
 }
 
 if (location.hash === '#talk') show('talk');
+else if (location.hash === '#growth') show('growth');
+else if (location.hash === '#compare') show('compare');
 else if (location.hash === '#score') show('score');

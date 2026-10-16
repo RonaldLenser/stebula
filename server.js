@@ -7,6 +7,7 @@ import { loadEnv } from './scripts/env.js';
 import { makeNodeLLM } from './src/agents/transport-node.js';
 import { rename } from 'node:fs/promises';
 import { sseFrame } from './src/talk/sse.js';
+import { digestText, runBaseline } from './src/talk/digest.js';
 import { makeTalkStore, talkTurn, talkAudit, talkSelfTest, talkReflect, needsReflection, freshTalkMemory } from './src/talk/session.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -66,6 +67,13 @@ http.createServer(async (req, res) => {
         try { await talkTurn(talk, llm, agent, body.text, emit); } catch (e) { emit('error', { error: e.message }); }
         return res.end();
       }
+      if (route === 'digest') { // read a text to the agent; every passage streams the same stages as a Talk turn
+        res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' });
+        const emit = (stage, data) => res.write(sseFrame(stage, data));
+        try { await digestText(talk, llm, agent, body, emit); } catch (e) { emit('error', { error: e.message }); }
+        return res.end();
+      }
+      if (route === 'baseline') return send(res, 200, await runBaseline(talk, llm, agent));
       if (route === 'audit') return send(res, 200, await talkAudit(talk, llm, agent));
       if (route === 'selftest') return send(res, 200, await talkSelfTest(talk, llm, agent, body.statement));
       if (route === 'reflect') return send(res, 200, await talkReflect(talk, llm, agent, body.trigger === 'return' ? 'return' : 'manual'));

@@ -24,3 +24,6 @@ Read this before citing any result from this repo.
 20. **"Between sessions" means on return.** Reflection runs when you reopen Talk after 30 minutes. Nothing happens in the gap.
 21. **The scorecard grades analogs.** A prompt-level analog of an architectural property may not count on the theory it comes from.
 22. **The brain view is a diagram.** The five regions are software roles in prompts and code, placed on a brain shape for readability. Position and shape carry no meaning. Glow is the recorded workspace score; nothing is a scan of the model.
+23. **Trait matching is crude.** Compare and Growth match traits by name and kind with loose word overlap, so synonyms are missed and unrelated traits can match. Said vs shown measures only five fixed behaviors; most traits have no proxy.
+24. **Evidence quotes prove presence, not meaning.** Code checks that a quote exists in the text, not that it supports the trait. The model chose the trait and the reading of the quote.
+25. **The baseline is one sample.** The empty-memory copy answers once. Its traits are a hint about the base model, not a measurement of it.

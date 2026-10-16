@@ -24,7 +24,7 @@ Rename the project to Stebula and make the Talk screen a live brain view.
 Follow CLAUDE.md. Add tests for the stream. Run npm test, commit, push.
 ```
 
-## Prompt 2: Digest and personality growth (status: not started)
+## Prompt 2: Digest and personality growth (status: done)
 
 ```text
 Add Digest mode and personality growth to Stebula.

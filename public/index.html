@@ -16,6 +16,8 @@
   <nav class="views" aria-label="View">
     <button id="viewExp" class="tab" aria-pressed="true">Experiment</button>
     <button id="viewTalk" class="tab" aria-pressed="false">Talk</button>
+    <button id="viewGrowth" class="tab" aria-pressed="false">Growth</button>
+    <button id="viewCompare" class="tab" aria-pressed="false">Compare</button>
     <button id="viewScore" class="tab" aria-pressed="false">Scorecard</button>
   </nav>
   <div id="expControls">
@@ -140,6 +142,52 @@
   </section>
   <section class="panel" aria-labelledby="h-reports"><h2 id="h-reports">Self-reports and metaphors</h2><div id="tReports" class="scroll"></div></section>
   <section class="panel" aria-labelledby="h-checks"><h2 id="h-checks">Checks and audits</h2><div id="tChecks" class="scroll"></div></section>
+  <section class="panel digestpanel" aria-labelledby="h-digest">
+    <h2 id="h-digest">Read to Stebula</h2>
+    <p class="note">It reads in passages of about 200 words. Each passage runs through the brain view, becomes a memory, and may add evidence to its personality model. Reading goes to whichever agent is chosen under Talk.</p>
+    <div class="digestform">
+      <input id="dTitle" type="text" placeholder="Title of what you are reading">
+      <input id="dSource" type="text" placeholder="Source (author, link, or where it came from)">
+      <textarea id="dText" rows="5" placeholder="Paste text, press Speak the text, or upload a .txt file."></textarea>
+      <div class="digestbtns">
+        <button id="dMic" aria-pressed="false">Speak the text</button>
+        <label class="file">.txt file <input id="dFile" type="file" accept=".txt,text/plain"></label>
+        <button id="dRead" class="primary">Read it</button>
+        <span id="dStatus" class="note" role="status"></span>
+      </div>
+    </div>
+    <div id="dLog" class="scroll"></div>
+  </section>
+</main>
+
+<main id="growthView" class="growthview" hidden>
+  <section class="panel">
+    <h2>Growth</h2>
+    <p class="cap">What grows is Stebula's memory file. The model underneath does not change.</p>
+    <div class="growthgrid">
+      <div class="growthmain">
+        <svg id="growthSvg" role="img" aria-label="Network of sources, evidence events, and the traits, motives and beliefs they built"></svg>
+        <div class="scrub"><label for="growthSlider">Replay formation</label><input id="growthSlider" type="range" min="0" max="0" value="0" disabled><span id="growthStep"></span></div>
+        <p class="note">Left: where it read or talked. Middle: evidence events. Right: traits (teal), motives (gold), beliefs (purple), sized by strength. Green lines support, red dashed lines contradict.</p>
+      </div>
+      <div class="growthside">
+        <p class="note"><b>Traits are evidence-scored patterns, not proof of a personality.</b></p>
+        <div id="traitList"></div>
+        <div id="provenance"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<main id="compareView" class="compareview" hidden>
+  <section class="panel">
+    <h2>Compare</h2>
+    <p class="lede">Do two agents that read different things end up with different personalities? An empty-memory copy answers the same five questions, so traits that come from the base model show up in every column.</p>
+    <div id="cmpControls" class="controls"></div>
+    <div id="cmpGrid" class="cmpgrid"></div>
+    <div id="cmpAnswers"></div>
+    <p class="note">Matching is by trait name and kind with loose word overlap, so near-synonyms can be missed. One run is an anecdote.</p>
+  </section>
 </main>
 
 <main id="scoreView" class="scoreview" hidden>

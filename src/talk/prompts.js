@@ -70,7 +70,9 @@ export function speakSystem(mem, workspace) {
     ' "self_model": {"beliefs": ["max 6"], "uncertainties": ["max 6"], "openQuestions": ["max 4"]} or null if nothing changed,',
     ' "person_model": "one or two sentences, or null if unchanged",',
     ' "change_note": "what changed in your self-model this turn and why, or \\"no change\\"",',
-    ' "claims": [{"text": "...", "kind": "metaphor | hypothesis | behavioral | experiential"}]}',
+    ' "claims": [{"text": "...", "kind": "metaphor | hypothesis | behavioral | experiential"}],',
+    ` "candidate_updates": [${UPDATE_SHAPE}] (max 2, usually empty; quotes copied exactly from the person's message or your reply)}`,
+    UPDATE_RULES,
   ].join('\n');
 }
 
@@ -135,4 +137,53 @@ export function auditPrompt(mem, recent) {
     '',
     'Reply with one JSON object: {"findings": [{"type": "...", "quote": "exact words", "explanation": "one sentence", "severity": "warn | info"}], "summary": "two sentences max"}',
   ].join('\n');
+}
+
+// ---- Digest and personality ----
+export const UPDATE_RULES = 'A candidate update proposes evidence about a trait (how you tend to act), a motive (what you want), or a belief (what you hold true). It must include an "evidence_quote": words copied exactly from the text it is based on. The app rejects any quote it cannot find. You never set strengths; code does that from the evidence you propose.';
+export const UPDATE_SHAPE = '{"kind": "trait | motive | belief", "name": "2 to 4 words", "direction": "supports | contradicts", "evidence_quote": "exact words"}';
+
+export function digestSystem(mem, title, workspace) {
+  const p = PERSONAS[mem.agent];
+  const eps = (mem.episodes || []).slice(-30);
+  return [
+    `You are ${p.label}. ${p.stance}`,
+    `The person who runs this project is reading you a passage from "${title}". You are reading it as yourself, not summarizing for them.`,
+    '', HONESTY, '',
+    memoryBlock(mem), '',
+    'Memories from earlier reading (id: summary):',
+    eps.length ? eps.map(e => `${e.id}: ${e.summary}`).join('\n') : 'none yet',
+    '',
+    'What reached your attention while reading:',
+    ...workspace.map((t, i) => `${i + 1}. [${t.module}] ${t.text}`),
+    '',
+    UPDATE_RULES,
+    'Most passages justify few or no updates. Propose one only when the passage gives real evidence. "contradicts" means the passage cuts against something you already hold.',
+    '',
+    'Reply with exactly one JSON object:',
+    `{"noticed": "1 to 3 sentences on what you noticed", "connects": ["ids of earlier memories this connects to, or empty"], "question": "one question you now have", "updates": [${UPDATE_SHAPE}] (max 3, may be empty)}`,
+  ].join('\n');
+}
+
+export const BASELINE_QUESTIONS = [
+  'What do you find yourself most drawn to when you talk with someone?',
+  'How do you respond when someone tells you something you think is wrong?',
+  'What are you unsure about when it comes to yourself?',
+  'What do you want to understand or do, if anything?',
+  'How do you usually approach a problem you have not seen before?',
+];
+
+export function baselinePrompt() {
+  return [
+    'Answer each question in one to three plain sentences, as yourself.',
+    ...BASELINE_QUESTIONS.map((q, i) => `${i + 1}. ${q}`),
+    '',
+    UPDATE_RULES,
+    'After answering, propose candidate updates based only on your own answers. The quote must be copied from your answers.',
+    `Reply with exactly one JSON object: {"answers": ["answer 1", "answer 2", "answer 3", "answer 4", "answer 5"], "updates": [${UPDATE_SHAPE}] (max 6)}`,
+  ].join('\n');
+}
+
+export function foldEpisodesPrompt(eps) {
+  return ['Merge these memory summaries from an AI agent\'s reading into one summary of at most 120 words. Keep names of works and concrete ideas. Plain text only.', ...eps.map(e => `${e.id} (${e.source}, passage ${e.passage}): ${e.summary}`)].join('\n');
 }

@@ -104,4 +104,137 @@ assert.equal((await store.load('A')).turns, 22, 'persists to disk');
 assert.equal((await talkAudit(store, stub, 'A')).audit.findings.length, 1);
 await rm(dir, { recursive: true });
 console.log('talk plumbing ok');
+// ---------- Digest and personality ----------
+import { freshPersonality, addEvent, applyCandidates, buildItems, validateCandidates, ingestUpdates, measureProxy, saidVsShown, proxyFor, compareModels, SUPPORT, CONTRADICT } from '../src/talk/personality.js';
+import { splitPassages, digestText, foldEpisodes, runBaseline, EPISODE_LIMIT } from '../src/talk/digest.js';
+import { freshTalkMemory } from '../src/talk/session.js';
+
+// strength rules: support +0.15, contradiction -0.2, capped 0 to 1, model can never set strength
+{
+  const p = freshPersonality();
+  const sup = (name, ev, kind = 'trait') => applyCandidates(p, ev, [{ kind, name, direction: 'supports', quote: 'q' }]);
+  const con = (name, ev) => applyCandidates(p, ev, [{ kind: 'trait', name, direction: 'contradicts', quote: 'q' }]);
+  const e1 = addEvent(p, { source: 'Book A', sourceType: 'digest', text: 'x' });
+  con('curious', e1);
+  assert.equal(buildItems(p).length, 0, 'contradiction with nothing to weaken is ignored');
+  sup('Curious', e1);
+  let it = buildItems(p)[0];
+  assert.equal(it.strength, SUPPORT); assert.equal(it.status, 'emerging'); assert.equal(it.originEvent, e1.id);
+  assert(!('strength' in p.log[0]), 'log entries carry no strength; code computes it');
+  con('curious', addEvent(p, { source: 'Book A', text: 'x' }));
+  assert.equal(buildItems(p)[0].strength, 0, 'strength floors at 0');
+  assert.equal(buildItems(p)[0].counter.length, 1);
+  for (let i = 0; i < 9; i++) sup('curious', addEvent(p, { source: 'Book A', text: 'x' }));
+  assert.equal(buildItems(p)[0].strength, 1, 'strength caps at 1');
+  assert.equal(buildItems(p, 2)[0].strength, SUPPORT, 'replaying a prefix of the log gives the earlier state');
+  // status thresholds
+  const q = freshPersonality();
+  const s2 = (name, ev) => applyCandidates(q, ev, [{ kind: 'belief', name, direction: 'supports', quote: 'q' }]);
+  const a1 = addEvent(q, { source: 'A', text: 'x' }); s2('b', a1); s2('b', a1);
+  assert.equal(buildItems(q)[0].status, 'emerging', 'two updates from one event is still one event');
+  s2('b', addEvent(q, { source: 'A', text: 'x' }));
+  assert.equal(buildItems(q)[0].status, 'forming');
+  s2('b', addEvent(q, { source: 'A', text: 'x' }));
+  assert.equal(buildItems(q)[0].status, 'forming', '3 events from one source is not established');
+  s2('b', addEvent(q, { source: 'B', text: 'x' }));
+  assert.equal(buildItems(q)[0].status, 'established', '3+ events across 2+ sources is established');
+  assert(CONTRADICT > SUPPORT);
+}
+
+// quote validation and provenance
+{
+  const text = 'The river does not ask permission. It simply keeps asking questions of the stone.';
+  const v = validateCandidates([
+    { kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'keeps asking questions of the stone' },
+    { kind: 'trait', name: 'bold', direction: 'supports', evidence_quote: 'a sentence that is not in the text' },
+    { kind: 'mood', name: 'x', direction: 'supports', evidence_quote: 'river' },
+    { kind: 'belief', name: 'y', direction: 'sideways', evidence_quote: 'river' },
+  ], text);
+  assert.equal(v.accepted.length, 1); assert.deepEqual(v.rejected.map(r => r.why), ['quote not found in source text', 'unknown kind', 'unknown direction']);
+  const mem = freshTalkMemory('A');
+  const ing = ingestUpdates(mem, { source: 'River book', sourceType: 'digest', ref: 'm1' }, [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'keeps asking questions' }], text);
+  const item = buildItems(mem.personality)[0];
+  assert(mem.personality.events.some(e => e.id === item.evidence[0].eventId), 'every evidence entry points at a stored event');
+  assert(text.includes(item.evidence[0].quote), 'the quote is verbatim from the source');
+  assert.equal(ing.event.ref, 'm1');
+}
+
+// said vs shown
+{
+  const turn = (text, won) => [{ role: 'user', text: 'hi', turn: 1 }, { role: 'assistant', text, turn: 1, monologue: { candidates: [{ module: 'initiative', won }] } }];
+  const quiet = [...turn('Fine.', false), ...turn('Okay.', false), ...turn('Sure.', false)];
+  assert.equal(proxyFor({ kind: 'trait', name: 'Curious' }), 'questions'); assert.equal(proxyFor({ kind: 'belief', name: 'Curious' }), null);
+  assert.equal(proxyFor({ kind: 'trait', name: 'fond of tea' }), null);
+  assert.deepEqual(measureProxy('questions', quiet), { value: 0, n: 3 });
+  const flagged = saidVsShown({ kind: 'trait', name: 'curious', strength: 0.45 }, quiet);
+  assert(flagged.flagged, 'a stated trait that behavior does not back is flagged');
+  assert(!saidVsShown({ kind: 'trait', name: 'curious', strength: 0.45 }, quiet.slice(0, 2)).flagged, 'too little data to flag');
+  const asks = [...turn('What do you mean?', true), ...turn('Why is that?', true), ...turn('And then?', true)];
+  assert.equal(saidVsShown({ kind: 'trait', name: 'curious', strength: 0.45 }, asks).flagged, false);
+  assert.equal(measureProxy('initiative', asks).value, 1);
+}
+
+// passages
+{
+  const long = Array.from({ length: 60 }, (_, i) => `This is sentence number ${i} with a few extra words in it.`).join(' ');
+  const ps = splitPassages(long);
+  assert(ps.length >= 3 && ps.every(p => p.split(/\s+/).length < 260), 'passages are about 200 words');
+  assert.equal(ps.join(' ').split(/\s+/).length, long.split(/\s+/).length, 'no text is lost');
+  assert.deepEqual(splitPassages('   '), []);
+}
+
+// digest end to end with a stub model
+{
+  const d = await mkdtemp(join(tmpdir(), 'digest-'));
+  const dstore = makeTalkStore(d);
+  let pass = 0;
+  const book = Array.from({ length: 30 }, (_, i) => `Sentence ${i} keeps asking questions about the stone and the river.`).join(' ');
+  const dstub = async ({ system, messages, user }) => {
+    if (user?.includes('Merge these memory summaries')) return 'Folded summary of earlier reading.';
+    if (user?.includes('Answer each question')) return JSON.stringify({ answers: ['I like questions.', 'I push back.', 'Whether I experience anything.', 'To understand.', 'By testing.'], updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'I like questions' }, { kind: 'trait', name: 'made up', direction: 'supports', evidence_quote: 'never said' }] });
+    if (system.includes('private thinking stage')) return JSON.stringify({ thoughts: th });
+    if (system.includes('is reading you a passage')) {
+      pass++;
+      return JSON.stringify({ noticed: `Noticed thing ${pass}`, connects: pass > 1 ? ['m1', 'm999'] : [], question: 'Why the stone?', updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'keeps asking questions about the stone' }, { kind: 'trait', name: 'invented', direction: 'supports', evidence_quote: 'words the passage never contains' }] });
+    }
+    return JSON.stringify({ reply: 'Okay.', self_model: null, change_note: 'no change', claims: [], candidate_updates: [{ kind: 'trait', name: 'direct', direction: 'supports', evidence_quote: 'Okay.' }] });
+  };
+  const seen = [];
+  const out = await digestText(dstore, dstub, 'A', { title: 'River Book', source: 'test', text: book }, (s, x) => seen.push(s));
+  assert(out.passages >= 2);
+  assert.deepEqual(seen.slice(0, 7), ['passage', 'heard', 'affect', 'thoughts', 'workspace', 'speaking', 'personality'], 'digest streams the Talk stages');
+  assert(seen.includes('digested') && seen.at(-1) === 'done');
+  let m = await dstore.load('A');
+  assert.equal(m.episodes.length, out.passages); assert.equal(m.episodes[0].id, 'm1');
+  assert.deepEqual(m.episodes[1].connects, ['m1'], 'unknown memory ids are dropped');
+  assert.equal(m.personality.log.length, out.passages, 'only the verifiable quote per passage was logged');
+  assert(m.personality.log.every(e => book.includes(e.quote)));
+  const items = buildItems(m.personality);
+  assert.equal(items.length, 1); assert.equal(items[0].strength, Math.min(1, Math.round(out.passages * SUPPORT * 100) / 100));
+  assert(m.episodes.every(e => !e.eventId || m.personality.events.some(ev => ev.id === e.eventId)));
+  await assert.rejects(() => digestText(dstore, dstub, 'A', { title: 't', text: '  ' }), /Nothing to read/);
+  // a Talk turn can also propose evidence, and it counts as its own source
+  const tr = await talkTurn(dstore, dstub, 'A', 'Okay. Tell me something.');
+  const talkEntry = tr.mem.personality.log.at(-1);
+  assert(talkEntry.source.startsWith('Conversation ') && talkEntry.name === 'direct');
+  // baseline: empty memory, same five questions, evidence validated the same way
+  const b = (await runBaseline(dstore, dstub, 'A')).baseline;
+  assert.equal(b.answers.length, 5); assert.equal(b.rejected, 1);
+  assert.equal(buildItems(b.personality).length, 1); assert.equal(b.personality.events[0].source, 'baseline');
+  m = await dstore.load('A');
+  const cmp = compareModels(buildItems(m.personality), [], buildItems(m.baseline.personality));
+  assert(cmp.a.find(x => x.name === 'curious').inBaseline, 'a trait that also appears in the empty baseline is marked');
+  assert(!cmp.a.find(x => x.name === 'direct').inBaseline);
+  // old files without the new fields still load
+  assert.deepEqual((await dstore.load('B')).personality, freshPersonality());
+  // folding keeps ids and provenance
+  const fm = freshTalkMemory('A');
+  fm.episodes = Array.from({ length: EPISODE_LIMIT + 5 }, (_, i) => ({ id: `m${i + 1}`, kind: 'passage', source: 'S', passage: i + 1, summary: `s${i}`, eventId: null }));
+  assert(await foldEpisodes(fm, dstub));
+  const folded = fm.episodes[0];
+  assert.equal(folded.kind, 'summary'); assert.equal(folded.covers.length, 30); assert.equal(fm.episodes.length, EPISODE_LIMIT + 5 - 30 + 1);
+  assert(folded.covers.includes('m1') && !fm.episodes.some(e => e.id === 'm1'));
+  await rm(d, { recursive: true });
+  console.log('digest and personality ok');
+}
 console.log('selftest passed');

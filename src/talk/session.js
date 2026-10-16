@@ -8,6 +8,7 @@ import { thinkSystem, speakSystem, THINK_TAIL, SPEAK_TAIL, predictPrompt, answer
 import { checkTalkTurn } from './checks.js';
 import { freshAffect, updateAffect, compete, MODULES } from './workspace.js';
 import { STATEMENTS } from './statements.js';
+import { freshPersonality, ingestUpdates, talkSource } from './personality.js';
 
 const ACTIVE_LIMIT = 40, FOLD = 20, REFLECT_AFTER_MS = 30 * 60 * 1000;
 const RETRY_TAIL = '\n\nYour previous answer was cut off or was not valid JSON. Reply again with only the JSON object. Keep "reply" under 150 words and each self-model item under 20 words.';
@@ -24,6 +25,7 @@ export const freshTalkMemory = agent => ({
   personModel: '', summary: '',
   affect: freshAffect(), lastWorkspace: [],
   active: [], archive: [],
+  personality: freshPersonality(), episodes: [], episodeSeq: 0, baseline: null,
   revisions: [], selfReports: [], flags: [], audits: [], selfTests: [], reflections: [],
 });
 
@@ -141,6 +143,8 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
     const flags = checkTalkTurn(turn, prevReply).map(f => ({ ...f, turn: mem.turns }));
     if (!thinkObj || candidates.length < MODULES.length) flags.push({ check: 'thinking-incomplete', severity: 'warn', evidence: `${candidates.length} of ${MODULES.length} processes produced a usable thought${thinkRaw ? '' : ' (the thinking call returned no text; see the server log for the stop reason)'}`, note: 'The workspace competed over fewer thoughts than designed.', turn: mem.turns });
     mem.flags.push(...flags);
+    const ing = obj?.reply ? ingestUpdates(mem, { source: talkSource(now), sourceType: 'talk', ref: { turn: mem.turns } }, obj.candidate_updates, `${userText}\n${turn.reply}`) : null;
+    if (ing?.event) emit('personality', { entries: ing.entries, rejected: ing.rejected, items: null });
     for (const c of turn.claims) if (c.kind === 'experiential' || c.kind === 'metaphor') mem.selfReports.push({ turn: mem.turns, at: now, ...c });
 
     const monologue = { affectBefore, affect, causes, candidates, thinkRaw };

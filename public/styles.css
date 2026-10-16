@@ -262,3 +262,51 @@ ul.sm li { margin: 2px 0; }
   #brainSvg .wire.on, #brainSvg .voice.on .voicering, #brainSvg .region.pulse .rfill { animation: none; }
   #brainSvg .rfill, #brainSvg .region, #brainSvg .wire, .emo .bar i { transition: none; }
 }
+
+/* digest, growth, compare */
+.digestform { display: flex; flex-direction: column; gap: 6px; }
+.digestform textarea { font: inherit; font-family: var(--serif); font-size: 15px; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: 8px; resize: vertical; }
+.digestbtns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#dMic[aria-pressed="true"] { background: var(--failed); border-color: var(--failed); color: #fff; }
+.ep { font-size: 13.5px; border-left: 2px solid var(--rule); padding: 3px 0 3px 8px; margin: 8px 0; }
+.growthview, .compareview { padding: 14px 24px 24px; max-width: 1400px; }
+.growthview .panel, .compareview .panel { max-height: none; }
+.growthgrid { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.growthmain { flex: 2 1 460px; min-width: 0; }
+.growthside { flex: 1 1 300px; min-width: 0; }
+#growthSvg { width: 100%; height: auto; max-height: 70vh; display: block; background: var(--paper); border-radius: 4px; }
+#growthSvg .gedge { stroke: var(--rule); stroke-width: 1; fill: none; }
+#growthSvg .gedge.sup { stroke: var(--held); opacity: .75; }
+#growthSvg .gedge.con { stroke: var(--failed); stroke-dasharray: 4 3; opacity: .85; }
+#growthSvg .gedge.hot { stroke-width: 2.5; opacity: 1; }
+#growthSvg .gsrc rect { fill: var(--panel); stroke: var(--ink); }
+#growthSvg .gsrc text, #growthSvg .gname { font: 12px var(--sans); fill: var(--ink); }
+#growthSvg .gsub { font: 10.5px var(--sans); fill: var(--muted); }
+#growthSvg .gev circle { fill: var(--muted); }
+#growthSvg .gitem { cursor: pointer; outline: none; }
+#growthSvg .gitem circle { fill-opacity: .8; stroke: var(--ink); stroke-width: 1; }
+#growthSvg .gitem.emerging circle { stroke-dasharray: 3 3; }
+#growthSvg .gitem.established circle { stroke-width: 3; }
+#growthSvg .gitem.sel circle, #growthSvg .gitem:focus-visible circle { stroke: var(--exp); stroke-width: 4; }
+#growthSvg .new { animation: appear .8s ease-out; }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #growthSvg .new { animation: none; } }
+#traitList { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; }
+.trait { text-align: left; display: block; padding: 6px 8px; }
+.trait.sel { border-width: 2px; border-color: var(--exp); }
+.trait .tname { font-weight: 600; }
+.trait .bar { display: block; margin: 4px 0; }
+.trait .note { display: block; font-size: 12.5px; }
+.flag-inline { color: var(--failed); }
+.prov { padding-left: 18px; font-size: 13.5px; }
+.prov li { margin: 6px 0; } .prov li.sup b { color: var(--held); } .prov li.con b { color: var(--failed); }
+#provenance h3 { font-size: 15px; margin: 8px 0 2px; }
+.cmpgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 10px 0; }
+.cmpcol { background: var(--paper); border-radius: 4px; padding: 8px 10px; }
+.cmpcol h3 { font-size: 15px; margin: 0; }
+.cmpcol .bar, .citem .bar { display: block; height: 7px; background: var(--panel); border-radius: 4px; overflow: hidden; margin: 3px 0; }
+.cmpcol .bar i, .trait .bar i { display: block; height: 100%; background: var(--ink); }
+.citem { font-size: 13.5px; margin: 8px 0; padding-left: 8px; border-left: 3px solid var(--rule); }
+.citem.diff { border-color: var(--exp); } .citem.base { border-color: var(--b); }
+.tag { display: block; font-size: 12px; } .tag.exp { color: var(--exp); } .tag.base { color: var(--b); }
+@media (max-width: 1100px) { .cmpgrid { grid-template-columns: 1fr; } .growthview, .compareview { padding: 14px 12px; } }

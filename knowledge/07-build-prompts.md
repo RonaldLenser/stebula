@@ -50,7 +50,7 @@ Add Digest mode and personality growth to Stebula.
 Follow CLAUDE.md. Add tests: strength rules, status thresholds, provenance links, proxy measures. Run npm test, commit, push.
 ```
 
-## Prompt 3: Research data layer (status: not started)
+## Prompt 3: Research data layer (status: done)
 
 ```text
 Add a research data layer, hypotheses, and human comparison to Stebula.

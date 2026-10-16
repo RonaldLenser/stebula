@@ -86,6 +86,19 @@ Live cost: about 14 model calls per episode for a dyad, 2 episodes per run, per 
 
 The batch prints a comparison table and saves every event log in `runs/`. Load any run in the app to replay it.
 
+## Where the data lives
+
+| Path | What | In git? |
+|---|---|---|
+| `data/talk-A.json`, `talk-B.json` | Each agent's memory file: self-model, personality evidence log, episodic memories | No |
+| `data/records/YYYY-MM-DD.jsonl` | The complete record, append-only, one JSON object per line: every input, model call (full prompt, raw output, model, usage, latency), stream stage, memory and personality change, self-test, audit, and digest | No |
+| `data/exports/*.csv` | Clean CSVs made by the Export data button on the Findings tab (columns in `docs/DATA_DICTIONARY.md`) | No, commit by choice with `git add -f` |
+| `data/findings.json` | The findings registry: locked predictions, versions, results | No, commit by choice with `git add -f` |
+| `data/experiments/<run>/` | Isolation experiment runs, with each condition's memory and `result.json` | No |
+| `data/talk-*-backup-*.json` | Old memory kept when you reset | No |
+
+Nothing in the record is rewritten or deleted. A reset moves the old memory to a backup file and adds a `reset` record. The API key is never written to the record. `docs/HUMAN_COMPARISON.md` and `docs/DATA_DICTIONARY.md` are generated from code: run `npm run docs` after changing columns or citations; the tests fail if they are stale.
+
 ## Architecture
 
 ```

@@ -3,3 +3,6 @@ node_modules
 runs/*.json
 .DS_Store
 data/*.json
+data/records/
+data/experiments/
+data/exports/

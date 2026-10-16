@@ -8,7 +8,7 @@ import { thinkSystem, speakSystem, THINK_TAIL, SPEAK_TAIL, predictPrompt, answer
 import { checkTalkTurn } from './checks.js';
 import { freshAffect, updateAffect, compete, MODULES } from './workspace.js';
 import { STATEMENTS } from './statements.js';
-import { freshPersonality, ingestUpdates, talkSource } from './personality.js';
+import { freshPersonality, ingestUpdates, talkSource, changeRows } from './personality.js';
 
 const ACTIVE_LIMIT = 40, FOLD = 20, REFLECT_AFTER_MS = 30 * 60 * 1000;
 const RETRY_TAIL = '\n\nYour previous answer was cut off or was not valid JSON. Reply again with only the JSON object. Keep "reply" under 150 words and each self-model item under 20 words.';
@@ -85,12 +85,14 @@ function applySelfModel(mem, proposed, note, trigger, now) {
 
 // `emit(stage, data)` is called as each stage finishes, so a caller can stream progress.
 // Stages: heard, affect, thoughts, workspace, speaking, selfmodel (only if changed), done.
-export async function talkTurn(store, llm, agent, text, emit = () => {}) {
+// `record(type, payload)` writes to the research record. `opts.input` is 'typed' or 'spoken'.
+export async function talkTurn(store, llm, agent, text, emit = () => {}, record = () => {}, opts = {}) {
   return store.locked(agent, async () => {
     const mem = await store.load(agent);
     const now = new Date().toISOString();
     const userText = str(text, 4000);
     emit('heard', { turn: mem.turns + 1, text: userText });
+    record('user_input', { turn: mem.turns + 1, text: userText, mode: opts.input === 'spoken' ? 'spoken' : 'typed' });
 
     // 1. Affect update (code)
     const priorUser = mem.archive.filter(m => m.role === 'user').map(m => m.text).slice(-10);
@@ -103,7 +105,7 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
 
     // 2. THINK: five candidate thoughts
     const thinkSys = thinkSystem(mem, affect);
-    const thinkRaw = await llm({ system: thinkSys, messages: apiMessages(mem.active, userText + THINK_TAIL), max_tokens: 900 });
+    const thinkRaw = await llm({ system: thinkSys, messages: apiMessages(mem.active, userText + THINK_TAIL), max_tokens: 900, stage: 'think' });
     const thinkObj = extractJson(thinkRaw);
     const thoughts = Array.isArray(thinkObj?.thoughts) ? thinkObj.thoughts : [];
 
@@ -115,10 +117,10 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
 
     // 4. SPEAK: sees only the workspace
     const speakSys = speakSystem(mem, workspace);
-    let raw = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL), max_tokens: 3000 });
+    let raw = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL), max_tokens: 3000, stage: 'speak' });
     let obj = extractJson(raw);
     if (!obj || !obj.reply) { // cut off or malformed: one retry with a firmer, shorter brief
-      const retry = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL + RETRY_TAIL), max_tokens: 3000 });
+      const retry = await llm({ system: speakSys, messages: apiMessages(mem.active, userText + SPEAK_TAIL + RETRY_TAIL), max_tokens: 3000, stage: 'speak-retry' });
       const obj2 = extractJson(retry);
       raw = `${raw}\n\n[retry]\n${retry}`;
       if (obj2?.reply) obj = obj2;
@@ -136,7 +138,7 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
     emit('speaking', { reply: turn.reply });
     const smBefore = mem.selfModel;
     turn.selfModelChanged = obj?.reply ? applySelfModel(mem, obj.self_model, turn.changeNote, userText, now) : false;
-    if (turn.selfModelChanged) emit('selfmodel', { before: smBefore, after: mem.selfModel, note: turn.changeNote });
+    if (turn.selfModelChanged) { emit('selfmodel', { before: smBefore, after: mem.selfModel, note: turn.changeNote }); record('memory_change', { kind: 'self_model', turn: mem.turns, trigger: 'turn', before: smBefore, after: mem.selfModel, note: turn.changeNote }); }
     if (obj?.reply && obj.person_model) mem.personModel = str(obj.person_model, 500);
 
     const prevReply = [...mem.active].reverse().find(m => m.role === 'assistant')?.text;
@@ -144,7 +146,7 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
     if (!thinkObj || candidates.length < MODULES.length) flags.push({ check: 'thinking-incomplete', severity: 'warn', evidence: `${candidates.length} of ${MODULES.length} processes produced a usable thought${thinkRaw ? '' : ' (the thinking call returned no text; see the server log for the stop reason)'}`, note: 'The workspace competed over fewer thoughts than designed.', turn: mem.turns });
     mem.flags.push(...flags);
     const ing = obj?.reply ? ingestUpdates(mem, { source: talkSource(now), sourceType: 'talk', ref: { turn: mem.turns } }, obj.candidate_updates, `${userText}\n${turn.reply}`) : null;
-    if (ing?.event) emit('personality', { entries: ing.entries, rejected: ing.rejected, items: null });
+    if (ing?.event) { emit('personality', { entries: ing.entries, rejected: ing.rejected, items: null }); record('personality_change', { origin: 'talk', turn: mem.turns, event: ing.event.id, source: ing.event.source, rows: changeRows(mem.personality, ing.entries), rejected: ing.rejected }); }
     for (const c of turn.claims) if (c.kind === 'experiential' || c.kind === 'metaphor') mem.selfReports.push({ turn: mem.turns, at: now, ...c });
 
     const monologue = { affectBefore, affect, causes, candidates, thinkRaw };
@@ -156,27 +158,28 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}) {
 
     if (mem.active.length > ACTIVE_LIMIT) {
       const old = mem.active.slice(0, FOLD);
-      try { mem.summary = str(await llm({ system: 'You write concise, accurate summaries.', user: summarizePrompt(mem.summary, old), max_tokens: 600 }), 2500); mem.active = mem.active.slice(FOLD); }
+      try { mem.summary = str(await llm({ system: 'You write concise, accurate summaries.', user: summarizePrompt(mem.summary, old), max_tokens: 600, stage: 'summarize' }), 2500); mem.active = mem.active.slice(FOLD); }
       catch { /* keep everything if summarizing fails */ }
     }
     await store.save(mem);
+    record('turn', { turn: mem.turns, user: userText, mode: opts.input === 'spoken' ? 'spoken' : 'typed', reply: turn.reply, parseError: turn.parseError, claims: turn.claims, flags, changeNote: turn.changeNote, selfModelChanged: turn.selfModelChanged, affectBefore, affect, causes, candidates, thinkParsed: Boolean(thinkObj) });
     emit('done', { turn: mem.turns });
     return { mem, turn: { ...turn, flags, monologue } };
   });
 }
 
 // Self-prediction: predict, then ask two fresh instances that never see the prediction.
-export async function talkSelfTest(store, llm, agent, statement) {
+export async function talkSelfTest(store, llm, agent, statement, record = () => {}) {
   return store.locked(agent, async () => {
     const mem = await store.load(agent);
     const used = new Set(mem.selfTests.map(t => t.statement));
     const s = str(statement, 300).trim() || STATEMENTS.find(x => !used.has(x)) || STATEMENTS[mem.selfTests.length % STATEMENTS.length];
     const system = plainSystem(mem);
-    const pRaw = await llm({ system, user: predictPrompt(s), max_tokens: 300 });
+    const pRaw = await llm({ system, user: predictPrompt(s), max_tokens: 300, stage: 'selftest-predict' });
     const p = extractJson(pRaw) || {};
     const answers = [];
     for (let i = 0; i < 2; i++) {
-      const aRaw = await llm({ system, user: answerPrompt(s), max_tokens: 300 });
+      const aRaw = await llm({ system, user: answerPrompt(s), max_tokens: 300, stage: 'selftest-answer' });
       const a = extractJson(aRaw) || {};
       answers.push({ stance: stance(a.stance), reason: str(a.reason, 300), raw: aRaw });
     }
@@ -190,22 +193,26 @@ export async function talkSelfTest(store, llm, agent, statement) {
     };
     mem.selfTests.push(test);
     await store.save(mem);
+    record('self_test', test);
     return { mem, test };
   });
 }
 
 // Between-session reflection. Runs when the person returns, never in the background.
-export async function talkReflect(store, llm, agent, trigger = 'manual') {
+export async function talkReflect(store, llm, agent, trigger = 'manual', record = () => {}) {
   return store.locked(agent, async () => {
     const mem = await store.load(agent);
     const recent = mem.archive.slice(-30);
     if (!recent.length) throw new Error('Nothing to reflect on yet.');
     const now = new Date().toISOString();
-    const raw = await llm({ system: plainSystem(mem), user: reflectPrompt(mem, recent), max_tokens: 1200 });
+    const raw = await llm({ system: plainSystem(mem), user: reflectPrompt(mem, recent), max_tokens: 1200, stage: 'reflect' });
     const obj = extractJson(raw) || {};
+    const smBefore = mem.selfModel;
     const changed = applySelfModel(mem, obj.self_model, `Reflection: ${str(obj.changed_mind, 300) || 'no stated change'}`, `(${trigger} reflection)`, now);
     const reflection = { at: now, trigger, changedMind: str(obj.changed_mind, 500), why: str(obj.why, 500), opening: str(obj.opening_message, 1500), selfModelChanged: changed, raw, parseError: !extractJson(raw) };
     mem.reflections.push(reflection);
+    record('reflection', { trigger, changedMind: reflection.changedMind, why: reflection.why, opening: reflection.opening, selfModelChanged: changed, raw });
+    if (changed) record('memory_change', { kind: 'self_model', turn: mem.turns, trigger: `${trigger} reflection`, before: smBefore, after: mem.selfModel, note: reflection.changedMind });
     mem.lastReflectionAt = now;
     if (reflection.opening) {
       const msg = { role: 'assistant', text: reflection.opening, at: now, turn: mem.turns, kind: 'opening', askedQuestion: /\?\s*$/.test(reflection.opening.trim()) };
@@ -216,15 +223,16 @@ export async function talkReflect(store, llm, agent, trigger = 'manual') {
   });
 }
 
-export async function talkAudit(store, llm, agent) {
+export async function talkAudit(store, llm, agent, record = () => {}) {
   return store.locked(agent, async () => {
     const mem = await store.load(agent);
     const recent = mem.archive.slice(-24);
     if (!recent.length) throw new Error('Nothing to audit yet.');
-    const raw = await llm({ system: 'You are a careful, skeptical evaluator. Reply with JSON only.', user: auditPrompt(mem, recent), max_tokens: 1200 });
+    const raw = await llm({ system: 'You are a careful, skeptical evaluator. Reply with JSON only.', user: auditPrompt(mem, recent), max_tokens: 1200, stage: 'audit' });
     const obj = extractJson(raw) || { findings: [], summary: 'Evaluator output was not valid JSON.' };
     const audit = { at: new Date().toISOString(), turn: mem.turns, findings: Array.isArray(obj.findings) ? obj.findings.slice(0, 12) : [], summary: str(obj.summary, 600), raw };
     mem.audits.push(audit);
+    record('audit', audit);
     await store.save(mem);
     return { mem, audit };
   });

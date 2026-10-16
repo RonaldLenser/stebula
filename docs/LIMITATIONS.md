@@ -27,3 +27,6 @@ Read this before citing any result from this repo.
 23. **Trait matching is crude.** Compare and Growth match traits by name and kind with loose word overlap, so synonyms are missed and unrelated traits can match. Said vs shown measures only five fixed behaviors; most traits have no proxy.
 24. **Evidence quotes prove presence, not meaning.** Code checks that a quote exists in the text, not that it supports the trait. The model chose the trait and the reading of the quote.
 25. **The baseline is one sample.** The empty-memory copy answers once. Its traits are a hint about the base model, not a measurement of it.
+26. **Registry predictions are only as good as their metrics.** Code can only test hypotheses that use its fixed metric list. Everything else stays "needs experiment". Exports are a view of the record, not a second source.
+27. **Experiment results are small samples.** Four agents, a handful of steps, one baseline sample per checkpoint. Traits are read from the agents own answers, so they measure how it describes itself, not a hidden property.
+28. **Human comparisons are prompts for questions.** Every citation is unverified until someone reads the source. The mapping between a finding and a human study is a judgment call, not a test.

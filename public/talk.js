@@ -5,6 +5,7 @@ import { emptyBrain, applyStage, brainFromMemory, signalBoosts, storedTurns } fr
 import { parseSse } from '/src/talk/sse.js';
 import { initBrain, paintBrain, REGIONS } from '/brain.js';
 import { renderGrowth, initGrowth, loadCompare, setCompareApi } from '/growth.js';
+import { initFindings, loadFindings } from '/findings.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -15,7 +16,7 @@ const sign = x => (x > 0 ? `+${x.toFixed(2)}` : x < 0 ? x.toFixed(2) : '0');
 
 // ---------- views ----------
 function show(view) {
-  const map = { exp: '#expView', talk: '#talkView', growth: '#growthView', compare: '#compareView', score: '#scoreView' };
+  const map = { exp: '#expView', talk: '#talkView', growth: '#growthView', compare: '#compareView', findings: '#findingsView', score: '#scoreView' };
   for (const [k, sel] of Object.entries(map)) $(sel).hidden = k !== view;
   $('#expControls').hidden = view !== 'exp';
   $('#viewExp').setAttribute('aria-pressed', String(view === 'exp'));
@@ -23,9 +24,11 @@ function show(view) {
   $('#viewScore').setAttribute('aria-pressed', String(view === 'score'));
   $('#viewGrowth').setAttribute('aria-pressed', String(view === 'growth'));
   $('#viewCompare').setAttribute('aria-pressed', String(view === 'compare'));
+  $('#viewFindings').setAttribute('aria-pressed', String(view === 'findings'));
   history.replaceState(null, '', view === 'exp' ? '#' : `#${view}`);
   if (view === 'talk') load(true);
   if (view === 'growth') load(false);
+  if (view === 'findings') loadFindings();
   if (view === 'compare') loadCompare(api).catch(e => { $('#cmpGrid').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
   if (view === 'score') scorecard();
 }
@@ -34,6 +37,7 @@ $('#viewTalk').onclick = () => show('talk');
 $('#viewScore').onclick = () => show('score');
 $('#viewGrowth').onclick = () => show('growth');
 $('#viewCompare').onclick = () => show('compare');
+$('#viewFindings').onclick = () => show('findings');
 
 // ---------- api ----------
 async function api(path, body) {
@@ -67,7 +71,8 @@ async function send() {
 }
 const STAGE_TEXT = { heard: 'Heard you. Updating the modeled signals.', affect: 'Signals updated. Five processes are proposing thoughts.', thoughts: 'Thoughts scored. Choosing what enters the workspace.', workspace: 'Workspace chosen. Composing the answer from those thoughts.', speaking: 'Answer ready. Checking the self-model.', selfmodel: 'Self-model changed. Saving.' };
 // One turn over server-sent events. Each stage repaints the brain as it arrives.
-async function streamTurn(text) { await streamPost('stream', { agent: S.agent, text }, (stage, data) => { S.brain = applyStage(S.brain, stage, data); if (STAGE_TEXT[stage]) S.busy = STAGE_TEXT[stage]; render(); }); }
+async function streamTurn(text) { const input = V.nextInput; V.nextInput = 'typed';
+  await streamPost('stream', { agent: S.agent, text, input }, (stage, data) => { S.brain = applyStage(S.brain, stage, data); if (STAGE_TEXT[stage]) S.busy = STAGE_TEXT[stage]; render(); }); }
 async function streamPost(path, body, onStage) {
   const r = await fetch(`/api/talk/${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Request failed (${r.status})`);
@@ -237,6 +242,7 @@ $('#scrubLive').onclick = () => { S.scrub = null; renderBrain(); };
 // ---------- digest ----------
 setCompareApi(api);
 initGrowth();
+initFindings();
 const D = { rec: null, running: false, rejected: 0, status: '' };
 function renderDigestLog() {
   const eps = (S.mem?.episodes || []).filter(e => e.kind !== 'summary').slice(-8).reverse();
@@ -281,7 +287,7 @@ $('#dMic').onclick = () => {
 // Speech in: the browser's speech recognition (Chrome and Edge send audio to their own cloud service).
 // Speech out: the browser's built-in voices. Nothing here is sent to the agent except the final text.
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const V = { listening: false, rec: null, base: '' };
+const V = { listening: false, rec: null, base: '', nextInput: 'typed' };
 const pref = (k, d) => { try { return JSON.parse(localStorage.getItem(`stebula.${k}`) ?? localStorage.getItem(`threshold.${k}`)) ?? d; } catch { return d; } };
 const setPref = (k, v) => { try { localStorage.setItem(`stebula.${k}`, JSON.stringify(v)); } catch { /* storage unavailable */ } };
 $('#readAloud').checked = pref('readAloud', true);
@@ -336,7 +342,7 @@ function listen() {
   };
   rec.onend = () => {
     V.listening = false; V.rec = null; micState();
-    if (finalText.trim()) send();
+    if (finalText.trim()) { V.nextInput = 'spoken'; send(); }
   };
   V.rec = rec; V.listening = true; micState(); $('#voiceNote').textContent = 'Listening. Pause when you are done.';
   rec.start();
@@ -361,4 +367,5 @@ function scorecard() {
 if (location.hash === '#talk') show('talk');
 else if (location.hash === '#growth') show('growth');
 else if (location.hash === '#compare') show('compare');
+else if (location.hash === '#findings') show('findings');
 else if (location.hash === '#score') show('score');

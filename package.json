@@ -9,7 +9,8 @@
     "start": "node scripts/run.js",
     "serve": "node server.js",
     "test": "node scripts/selftest.js",
-    "batch": "node scripts/batch.js"
+    "batch": "node scripts/batch.js",
+    "docs": "node scripts/gen-docs.js"
   },
   "engines": {
     "node": ">=18"

@@ -18,6 +18,7 @@
     <button id="viewTalk" class="tab" aria-pressed="false">Talk</button>
     <button id="viewGrowth" class="tab" aria-pressed="false">Growth</button>
     <button id="viewCompare" class="tab" aria-pressed="false">Compare</button>
+    <button id="viewFindings" class="tab" aria-pressed="false">Findings</button>
     <button id="viewScore" class="tab" aria-pressed="false">Scorecard</button>
   </nav>
   <div id="expControls">
@@ -187,6 +188,34 @@
     <div id="cmpGrid" class="cmpgrid"></div>
     <div id="cmpAnswers"></div>
     <p class="note">Matching is by trait name and kind with loose word overlap, so near-synonyms can be missed. One run is an anecdote.</p>
+  </section>
+</main>
+
+<main id="findingsView" class="findingsview" hidden>
+  <section class="panel">
+    <h2>Findings</h2>
+    <p class="lede">Hypotheses, written down with a prediction before anything is tested. A prediction cannot be edited once it is locked. Changing it makes a new version that starts with no results. One run is an anecdote, so a finding needs enough observations before it is called supported or refuted.</p>
+    <div class="controls">
+      <button id="fGenerate" class="primary" title="The model reads aggregated stats and proposes up to 3 testable hypotheses">Generate hypotheses</button>
+      <button id="fExport" title="Downloads six CSV files built from the complete record">Export data</button>
+      <span id="fStatus" class="note" role="status"></span>
+    </div>
+    <div id="fLocks"></div>
+    <div id="fList"></div>
+    <details><summary>Aggregated statistics the hypothesis generator reads</summary><div id="fStats"></div></details>
+  </section>
+  <section class="panel">
+    <h2>Isolation experiment</h2>
+    <p class="note">Four agents start identical and differ only in what they receive. At fixed steps each answers the same five personality questions and takes the same two self-prediction tests. Results feed the findings above automatically.</p>
+    <div id="fConds" class="fconds">
+      <label><input type="checkbox" value="isolated" checked> <b>isolated</b> <span class="note">Reads only. No conversation.</span></label>
+      <label><input type="checkbox" value="social" checked> <b>social</b> <span class="note">Converses only. Reads nothing.</span></label>
+      <label><input type="checkbox" value="mixed" checked> <b>mixed</b> <span class="note">Alternates reading and conversation.</span></label>
+      <label><input type="checkbox" value="baseline" checked> <b>baseline</b> <span class="note">Receives nothing, asked the same questions.</span></label>
+    </div>
+    <div class="controls"><label>Steps <input id="fSteps" type="number" value="6" min="1" max="20"></label><label>Check every <input id="fEvery" type="number" value="3" min="1" max="10"></label><button id="fRun" class="primary">Run experiment</button></div>
+    <p id="fEstimate" class="note"></p><p id="fProgress" class="note" role="status"></p>
+    <div id="fExpResult"></div>
   </section>
 </main>
 

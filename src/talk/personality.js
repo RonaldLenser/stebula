@@ -119,3 +119,18 @@ export function ingestUpdates(mem, { source, sourceType, ref }, cands, sourceTex
   const event = addEvent(p, { source, sourceType, ref, text: sourceText });
   return { event, entries: applyCandidates(p, event, accepted), rejected };
 }
+
+// Rows for the research record: what each accepted update did to its item's strength, before and after.
+export function changeRows(p, entries) {
+  if (!entries.length) return [];
+  const startAt = entries[0].n - 1;
+  const before = new Map(buildItems(p, startAt).map(i => [i.id, i.strength]));
+  const rows = [];
+  for (const e of entries) {
+    const b = before.get(e.id) ?? 0;
+    const after = buildItems(p, e.n).find(i => i.id === e.id);
+    rows.push({ n: e.n, itemId: e.id, name: e.name, kind: e.kind, direction: e.direction, strengthBefore: b, strengthAfter: after ? after.strength : 0, statusAfter: after ? after.status : null, eventId: e.eventId, quote: e.quote, source: e.source });
+    before.set(e.id, after ? after.strength : 0);
+  }
+  return rows;
+}

@@ -13,7 +13,7 @@ Status: DONE, IN PROGRESS, NEXT, LATER.
 | 0.3.4 | Knowledge base merged into the repo | DONE |
 | 0.4 | Rename to Stebula, live brain view, streaming stages, emotion signals panel, turn scrubber (prompt 1) | DONE |
 | 0.5 | Digest mode, code-controlled personality model, provenance, said vs shown, Growth view, Compare view (prompt 2) | DONE |
-| 0.6 | Research data layer, CSV exports, data dictionary, Findings registry, human comparison, isolation presets (prompt 3) | NEXT |
+| 0.6 | Research data layer, CSV exports, data dictionary, Findings registry, human comparison, isolation presets (prompt 3) | DONE |
 | 0.7 | Live runs: Experiment 01 pilot, 20 Talk turns, self-prediction tests | NEXT (Ron) |
 | 0.8 | Verify every reference; LLM judge alongside heuristic checks | LATER |
 | 0.9 | Public demo mode on Vercel: replay-only, password-gated live Talk | LATER |

@@ -24,16 +24,20 @@ export class ApiError extends Error {
 const headers = extra => { const t = safe(() => localStorage.getItem('stebula.token'), ''); return { ...(t ? { authorization: `Bearer ${t}` } : {}), ...extra }; };
 async function failure(r) { const j = await r.json().catch(() => ({})); return new ApiError(j.error || `Request failed (${r.status})`, j, r.status); }
 
-export async function api(path, body, { signal } = {}) {
+// A server that needs an access token answers 401. Ask once, remember it for this browser, and retry.
+const askToken = () => { const t = typeof prompt === 'function' ? prompt('This server needs an access token (STEBULA_TOKEN). Enter it:') : null; if (t) safe(() => localStorage.setItem('stebula.token', t.trim())); return Boolean(t); };
+export async function api(path, body, { signal } = {}, retried = false) {
   const r = await fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: headers(body === undefined ? {} : { 'content-type': 'application/json' }), body: body === undefined ? undefined : JSON.stringify(body), signal });
+  if (r.status === 401 && !retried && askToken()) return api(path, body, { signal }, true);
   if (!r.ok) throw await failure(r);
   return r.json();
 }
 
 // POST that answers with server-sent events. onEvent(stage, data) runs for every event. An "error" event or a
 // dropped connection becomes an ApiError after the stream ends; an abort rejects with name "AbortError".
-export async function stream(path, body, onEvent, { signal } = {}) {
+export async function stream(path, body, onEvent, { signal } = {}, retried = false) {
   const r = await fetch(path, { method: 'POST', headers: headers({ 'content-type': 'application/json' }), body: JSON.stringify(body), signal });
+  if (r.status === 401 && !retried && askToken()) return stream(path, body, onEvent, { signal }, true);
   if (!r.ok) throw await failure(r);
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '', failed = null, finished = false;

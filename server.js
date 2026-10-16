@@ -37,8 +37,8 @@ const recorder = makeRecorder(DATA, { revision: REVISION.commit });
 const jobs = makeJobs();
 const registry = makeRegistry(path.join(DATA, 'findings.json'));
 const NO_KEY = 'Talk needs a live model. Add ANTHROPIC_API_KEY to .env and restart. Scripted mocks cannot hold a conversation.';
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml' };
-const ALLOWED = [path.join(ROOT, 'public'), path.join(ROOT, 'src')];
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.md': 'text/plain; charset=utf-8' };
+const ALLOWED = [path.join(ROOT, 'public'), path.join(ROOT, 'src'), path.join(ROOT, 'docs')];
 const PUBLIC_API = new Set(['/api/config', '/api/version', '/api/example', '/api/health']);
 
 const send = (res, code, body, type = 'application/json') => {
@@ -133,9 +133,10 @@ const server = http.createServer(async (req, res) => {
     }
     let rel;
     try { rel = decodeURIComponent(url.pathname === '/' ? '/public/index.html' : url.pathname); } catch { return send(res, 400, 'Bad path', 'text/plain'); }
-    if (!rel.startsWith('/src/') && !rel.startsWith('/public/')) rel = '/public' + rel;
+    if (!rel.startsWith('/src/') && !rel.startsWith('/public/') && !rel.startsWith('/docs/')) rel = '/public' + rel;
     const file = path.normalize(path.join(ROOT, rel));
     if (!ALLOWED.some(dir => file.startsWith(dir + path.sep))) return send(res, 403, 'Forbidden', 'text/plain');
+    if (file.startsWith(path.join(ROOT, 'docs') + path.sep) && path.extname(file) !== '.md') return send(res, 403, 'Forbidden', 'text/plain');
     send(res, 200, await readFile(file), MIME[path.extname(file)] || 'application/octet-stream');
   } catch (e) {
     if (e.code === 'ENOENT') return send(res, 404, 'Not found', 'text/plain');

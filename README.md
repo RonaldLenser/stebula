@@ -47,6 +47,10 @@ Cost: 2 model calls per message (more if a stage is retried), 3 per self-predict
 
 Fourteen indicator properties drawn from theories of consciousness (following Butlin, Long et al. 2023), with an honest status for each. The page explains why the count does not settle anything.
 
+## Check the interface
+
+`npm run ui-check` starts the server with a scripted stand-in for the model and drives headless Chrome or Edge through the interface: empty, degraded, failed and cancelled states, memory controls, replay, keyboard use, experiments and a phone-sized screen. It writes screenshots to a temp folder (set SHOTS to choose one). It needs Chrome or Edge and is not part of `npm test`.
+
 ## One reproducible demonstration
 
 This needs no key and costs nothing. It shows the pipeline, not the hypothesis.

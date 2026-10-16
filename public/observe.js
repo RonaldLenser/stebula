@@ -97,8 +97,9 @@ const stop = () => S.job?.abort();
 function errorHtml(err) {
   if (!err) return '';
   const k = err.kind || 'request';
-  const title = k === 'cancelled' ? 'Stopped' : k === 'corrupt' ? 'Stored memory is damaged' : err.stage ? `The ${esc(err.stage)} step failed` : 'That did not work';
+  const title = k === 'cancelled' ? 'Stopped' : k === 'corrupt' ? 'Stored memory is damaged' : err.stage ? `The ${esc(STAGE_NAME[err.stage] || err.stage)} step failed` : 'That did not work';
   const why = k === 'corrupt' ? 'The memory file exists but cannot be read, so it was left untouched.' : err.detail ? esc(err.detail) : '';
+  const headline = k === 'cancelled' || k === 'corrupt' || !err.stage ? err.error || '' : '';
   const rec = k === 'corrupt' ? 'Restore a backup, or start fresh and keep the damaged file for recovery.' : RECOVERY[k] || err.recovery || '';
   const acts = [
     err.retryText && k !== 'corrupt' ? '<button class="btn small" data-act="retry">Retry the same message</button>' : '',
@@ -106,7 +107,7 @@ function errorHtml(err) {
     k === 'corrupt' ? '<button class="btn small" data-act="fresh">Start fresh and keep the damaged file</button>' : '',
     '<button class="btn ghost small" data-act="dismiss">Dismiss</button>',
   ].join('');
-  return `<b>${title}.</b> ${esc(err.error || '')} ${why ? `<div class="why">${why}</div>` : ''}<div class="why">${esc(rec)}</div><div class="actions">${acts}</div>`;
+  return `<b>${title}.</b> ${esc(headline)} ${why ? `<div class="why">${why}</div>` : ''}<div class="why">${esc(rec)}</div><div class="actions">${acts}</div>`;
 }
 
 // ---------- render: conversation ----------
@@ -148,9 +149,9 @@ function renderConversation() {
   if (!parts.length) {
     parts.push(`<div class="empty"><p><b>Nothing here yet.</b> ${config.value?.live && !S.readonly ? 'Say hello below. After each answer you will see what changed in its stored memory, and the Process tab shows how the answer was produced.' : 'This copy cannot call a model, so there is no live conversation.'}</p>${S.exampleAvailable && !S.example ? '<button class="btn" data-act="example">Open the scripted example</button>' : ''}</div>`);
   }
-  const el = $('#chatLog'), stick = el.scrollHeight - el.scrollTop - el.clientHeight < 80 || S.busy;
+  const el = $('#chatLog');
   el.innerHTML = parts.join('');
-  if (stick && !isReplay()) el.scrollTop = el.scrollHeight;
+  bottom();
 }
 
 function renderBanner() {
@@ -187,10 +188,7 @@ function renderComposer() {
 const tag = (kind, text) => `<span class="prov ${kind}">${esc(text)}</span>`;
 const TAGS = { model: tag('model', 'Model output'), code: tag('code', 'Computed by code'), memory: tag('memory', 'Stored memory'), observed: tag('', 'Observed input'), none: tag('none', 'Not recorded') };
 
-function failureText(f) {
-  if (!f) return '';
-  return `${esc(f.kind)}${f.detail ? `: ${esc(f.detail)}` : ''}`;
-}
+const STAGE_NAME = { think: 'thinking', speak: 'reply', 'digest-read': 'reading', 'digest-think': 'thinking', reflect: 'reflection', audit: 'audit' };
 
 function processTab() {
   const { state, live } = brainOf(), t = viewTurn(), m = S.mem;
@@ -199,13 +197,14 @@ function processTab() {
   const steps = [];
   steps.push(`<li><h4>Heard ${TAGS.observed}</h4><p>${state.heard ? `"${esc(state.heard.slice(0, 300))}"` : '<span class="nodata">No data</span>'}</p></li>`);
   const aff = state.affect;
-  steps.push(`<li${aff ? '' : ' class="skipped"'}><h4>Signals ${TAGS.code}</h4>${aff ? `<div class="bars">${[['surprise', 'Surprise'], ['conflict', 'Conflict'], ['curiosity', 'Curiosity']].map(([k, n]) => `<span>${n}</span><div class="bar"><i style="width:${Math.round((aff[k] ?? 0) * 100)}%"></i></div><span>${fmt(aff[k])}${mono?.affectBefore ? ` <span class="note">from ${fmt(mono.affectBefore[k])}</span>` : ''}</span>`).join('')}</div>
+  steps.push(`<li${aff ? '' : ' class="skipped"'}><h4>Signals ${TAGS.code}</h4>${aff ? `<div class="bars">${[['surprise', 'Surprise'], ['conflict', 'Conflict'], ['curiosity', 'Curiosity']].map(([k, n]) => `<span>${n}</span><div class="bar"><i style="width:${Math.round((aff[k] ?? 0) * 100)}%"></i></div><span>${fmt(aff[k])}${mono?.affectBefore ? ` <span class="note">(was ${fmt(mono.affectBefore[k])})</span>` : ''}</span>`).join('')}</div>
     <p class="note">Modeled from the conversation. Not felt. ${state.causes?.length ? `Because ${esc(state.causes.join('; '))}.` : ''} Each signal boosts one process: ${signalBoosts(aff).map(b => `${b.signal} boosts ${b.region} by ${sign(b.boost) || '0'}`).join('; ')}.</p>` : (live ? '<p class="pending">Waiting.</p>' : '<p class="nodata">No data recorded.</p>')}</li>`);
   // proposals
   let prop;
   if (state.thinkStatus === 'failed') {
     const st = mono?.stages?.find(x => x.stage === 'think');
-    prop = `<div class="thought-failed"><b>Process trace incomplete.</b> The thinking step failed (${failureText(state.thinkFailure)}${st ? `, after ${st.attempts?.length ?? 1} attempt${(st.attempts?.length ?? 1) === 1 ? '' : 's'}` : ''}). No proposals were recorded, so nothing was selected. The reply was written without a workspace and the turn is marked degraded and excluded from analysis. <span class="note">${esc(RECOVERY[state.thinkFailure?.kind] || '')}</span></div>`;
+    const n = st?.attempts?.length ?? 1;
+    prop = `<div class="thought-failed"><b>Process trace incomplete.</b> The thinking step failed: <b>${esc(state.thinkFailure?.kind || 'unknown')}</b>, after ${n} attempt${n === 1 ? '' : 's'}.${state.thinkFailure?.detail ? ` <span class="note">${esc(state.thinkFailure.detail)}</span>` : ''} No proposals were recorded, so nothing was selected. The reply was written without a workspace and the turn is marked degraded and excluded from analysis. <span class="note">${esc(RECOVERY[state.thinkFailure?.kind] || '')}</span></div>`;
   } else if (state.candidates.length) {
     prop = `<table><thead><tr><th>Process</th><th>Proposal</th><th class="num">Relevance</th><th class="num">Affect</th><th class="num">Repeat</th><th class="num">Score</th></tr></thead><tbody>${state.candidates.map(c => `<tr class="${c.won ? 'won' : 'lost'}"><td>${esc(c.module)}<br><span class="note">${c.won ? 'selected' : 'dropped'}</span></td><td>${esc(c.text)}</td><td class="num">${fmt(c.base)}</td><td class="num" title="${c.driver ? `from ${esc(c.driver)}` : 'no signal feeds this process'}">${esc(sign(c.affectBoost) || '0')}</td><td class="num">${esc(sign(c.noveltyPenalty) || '0')}</td><td class="num"><b>${fmt(c.score)}</b></td></tr>`).join('')}</tbody></table>`;
   } else if (live) prop = '<p class="pending">Waiting for the five processes to propose.</p>';
@@ -347,8 +346,11 @@ function renderInspector() {
 const setTab = tab => { S.tab = tab; inspKey = ''; render(); };
 
 // ---------- render everything ----------
+// Keep the newest message in view unless the person scrolled up or is looking at an older turn. Runs after the layout settles.
+let atBottom = true;
+function bottom() { const el = $('#chatLog'); if (atBottom && !isReplay()) el.scrollTop = el.scrollHeight; }
 export function render() {
-  renderStages(); renderConversation(); renderBanner(); renderReplayBar(); renderComposer(); renderInspector();
+  renderStages(); renderConversation(); renderBanner(); renderReplayBar(); renderComposer(); renderInspector(); bottom();
   $('#inspectBtn').textContent = document.body.classList.contains('inspect-open') ? 'Close inspector' : 'Inspect';
   $('#memoryOn').disabled = !!S.busy || S.readonly;
 }
@@ -448,6 +450,7 @@ export async function initObserve() {
 
   $('#composer').onsubmit = e => { e.preventDefault(); send(); };
   $('#talkInput').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } };
+  $('#chatLog').addEventListener('scroll', () => { const el = $('#chatLog'); atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80; });
   $('#talkStop').onclick = stop;
   $('#memoryOn').onchange = e => { S.memoryOn = e.target.checked; };
   $('#agentPick').onchange = e => { S.agent = e.target.value; S.sel = null; inspKey = ''; loadState(); };

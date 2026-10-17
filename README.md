@@ -4,6 +4,16 @@
 
 Stebula is a visual laboratory for how an AI agent's memory, self-description, attention mechanism and decisions interact. You can talk to the agent or read to it and watch, from recorded data, which information it received, which thoughts it proposed, which two won a limited workspace, what changed in its stored memory, and whether that change affects a later decision. Everything that "grows" is text in an external memory file that is pasted into prompts; the model's weights never change. The process view is a diagram of software state, not a scan of neural activity, and nothing here produces a consciousness score or says whether anything is experienced.
 
+## Why Stebula exists
+
+Stebula began with a personal question: how much of who we become is chosen, and how much comes from the expectations we absorb?
+
+What would happiness mean without money as its measure? Who might we become without having to prove our worth through success?
+
+These questions motivate the ambition to build an AI agent whose development we can observe, following its memories, expressed priorities, self-description, and decisions over time. Consciousness is an open question guiding the project, not an established capability.
+
+Read [the motivation and vision behind Stebula](./VISION.md).
+
 ## The research question
 
 Does structured interaction plus reflection on measured behavior produce changes in a system's self-model that then change its later decisions on a new problem, beyond what the same system does without interaction, memory, or reflection?

@@ -150,7 +150,7 @@ await withMemory(async (dir, store) => {
   assert.equal(th.status, 'failed'); assert.equal(th.failure.kind, 'refusal'); assert.equal(th.candidates.length, 0);
   assert(out.turn.flags.some(f => f.check === 'thinking-incomplete'), 'the failure is flagged');
   assert(refusal.requests.filter(r => r.stage === 'think').length === 1, 'refusals are not retried');
-  assert(/no workspace thoughts/.test(refusal.requests.find(r => r.stage === 'speak').system), 'the speaker is told it has no workspace, so it cannot pretend to have deliberated');
+  assert(/no selected proposals/.test(refusal.requests.find(r => r.stage === 'speak').system), 'the speaker is told it has no selected proposals, so it cannot pretend to have deliberated');
   const m = await store.load('A');
   assert.equal(m.archive.at(-1).degraded, true);
   assert.equal(measureProxy('questions', m.archive).n, 0, 'degraded turns are excluded from behavior measures');

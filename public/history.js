@@ -2,10 +2,11 @@
 // A past turn is drawn from its own records. Anything that was not recorded is listed as a gap, never filled
 // from the agent's current memory.
 import { $, $$, esc, when, fmt } from '/core.js';
-import { S, AGENTS, agentName, subscribe, notify, turns, latest, selectTurn, selectNode, isHistory } from '/store.js';
-import { processModel, historyMoments, stateAt, agentMsg, userMsg, whatChanged } from '/src/talk/process.js';
-import { mapHtml, drawEdges, hookResize } from '/map.js';
-import { inspectorHtml, statusChip } from '/inspector.js';
+import { overviewModel } from '/src/talk/overview.js';
+import { overviewHtml } from '/overview.js';
+import { bindOpeners } from '/drawer.js';
+import { S, AGENTS, agentName, subscribe, notify, turns, latest, selectTurn, openDetail } from '/store.js';
+import { processModel, historyMoments, stateAt, agentMsg, userMsg } from '/src/talk/process.js';
 import { renderGrowth, initGrowth } from '/growth.js';
 
 const H = { filter: 'all', moment: null };
@@ -41,14 +42,14 @@ function stateHtml(st) {
 
 function renderDetail() {
   const m = current(), box = $('#hDetail');
-  if (!S.mem || !m) { $('#hState').innerHTML = ''; box.innerHTML = '<div class="empty"><p><b>No history yet.</b> Conversations, readings and reflections appear here as they are recorded.</p></div>'; $('#hInspector').innerHTML = ''; $('#hMapBox').innerHTML = ''; return; }
+  if (!S.mem || !m) { $('#hState').innerHTML = ''; box.innerHTML = '<div class="empty"><p><b>No history yet.</b> Conversations, readings and reflections appear here as they are recorded.</p></div>'; $('#hOverview').hidden = true; return; }
   const st = stateAt(S.mem, m.at), isLatest = m.kind === 'turn' && m.turn === latest();
   const banner = `<div class="banner${isLatest ? ' info' : ''}"><b>${isLatest ? 'Latest turn.' : 'Viewing history.'}</b> ${esc(KIND_LABEL[m.kind])} recorded ${esc(when(m.at))}. ${isLatest ? '' : 'This is the state as recorded then, not the agent\'s current state.'} <button class="btn small" data-hist-open>${m.kind === 'turn' ? 'Open this turn in the Agent view' : 'Go to the Agent view'}</button></div>`;
   let main = '';
   if (m.kind === 'turn') {
-    const u = userMsg(S.mem, m.turn), a = agentMsg(S.mem, m.turn), wc = whatChanged(S.mem, m.turn);
+    const u = userMsg(S.mem, m.turn), a = agentMsg(S.mem, m.turn);
     main = `<div class="exchange"><div class="msg user"><div class="who">You, turn ${m.turn}</div><div class="text">${esc(u?.text || '')}</div></div>
-      <div class="msg agent${a?.degraded ? ' degraded' : ''}"><div class="who">${esc(agentName(S.mem.agent))}</div><div class="text">${esc(a?.text || '')}</div><div class="changed${wc.did ? ' did' : ''}">${esc(wc.text)}</div></div></div>`;
+      <div class="msg agent${a?.degraded ? ' degraded' : ''}"><div class="who">${esc(agentName(S.mem.agent))}</div><div class="text">${esc(a?.text || '')}</div></div></div>`;
   } else if (m.kind === 'reading' || m.kind === 'fold') {
     main = `<p class="lead">${esc(m.title)}</p><p>${esc(m.summary)}</p><p><button class="btn small" data-hist-memory="${esc(m.episode)}">Open this memory</button></p>`;
   } else if (m.kind === 'reflection' || m.kind === 'reflection-opening') {
@@ -61,20 +62,13 @@ function renderDetail() {
   box.innerHTML = `${banner}${main}`; $('#hState').innerHTML = stateHtml(st);
 
   const isTurn = m.kind === 'turn';
-  $('#hMapPane').hidden = !isTurn; $('#hInsp').hidden = !(isTurn || S.node?.kind === 'memory');
+  $('#hOverview').hidden = !isTurn;
   if (isTurn) {
-    const mod = processModel({ mem: S.mem, turn: m.turn, agent: S.agent }), opts = { selected: S.node, step: null };
-    $('#hMapBox').innerHTML = mapHtml(mod, opts); drawEdges($('#hMapBox'), mod, opts);
-    $('#hMapNote').innerHTML = `${statusChip(mod.overall.state === 'complete' ? 'done' : mod.overall.state === 'incomplete' ? 'partial' : 'missing')} ${esc(mod.overall.text)}`;
-    $('#hInspector').innerHTML = inspectorHtml(mod, S.node, { mem: S.mem, example: S.example });
-    if (!hro) hro = hookResize($('#hMapBox'), () => { const t = current(); if (t?.kind === 'turn') drawEdges($('#hMapBox'), processModel({ mem: S.mem, turn: t.turn, agent: S.agent }), { selected: S.node, step: null }); });
-    else { hro.disconnect(); const w = $('.mapwrap', $('#hMapBox')); if (w) hro.observe(w); }
-  } else if (S.node?.kind === 'memory') {
-    $('#hInspector').innerHTML = inspectorHtml(processModel({ mem: S.mem, turn: latest(), agent: S.agent }), S.node, { mem: S.mem });
+    const mod = processModel({ mem: S.mem, turn: m.turn, agent: S.agent });
+    $('#hOvBody').innerHTML = overviewHtml(overviewModel(mod), { memoryItems: mod.nodes.memories.items }) + '<p><button class="btn small" data-open=\'{"kind":"diagram","id":"all"}\'>Process diagram</button></p>';
   }
   if (S.mem && $('#growthSvg')) renderGrowth(S.mem);
 }
-let hro = null;
 
 export function render() { if (!S.mem) { $('#hList').innerHTML = '<li class="empty">Loading.</li>'; $('#hFilters').innerHTML = ''; $('#hDetail').innerHTML = ''; return; } renderList(); renderDetail(); }
 
@@ -84,18 +78,15 @@ export function initHistory() {
   $('#hList').addEventListener('click', e => {
     const b = e.target.closest('[data-moment]'); if (!b) return;
     const m = all().find(x => x.id === b.dataset.moment); if (!m) return;
-    H.moment = m.id; if (m.kind === 'turn') selectTurn(m.turn, { node: S.node?.kind === 'memory' ? null : S.node }); else { S.node = null; notify(); }
+    H.moment = m.id; if (m.kind === 'turn') selectTurn(m.turn); else notify();
   });
   const root = $('#historyView');
+  bindOpeners(root);
   root.addEventListener('click', e => {
-    const n = e.target.closest('[data-pick-node]'), p = e.target.closest('[data-proposal]'), ed = e.target.closest('[data-edge]'), mm = e.target.closest('[data-memory],[data-pick-memory],[data-hist-memory]');
-    if (mm) { selectNode({ kind: 'memory', id: mm.dataset.memory || mm.dataset.pickMemory || mm.dataset.histMemory }); $('#hInsp').hidden = false; return; }
-    if (p) return selectNode({ kind: 'proposal', id: p.dataset.proposal });
-    if (n) return selectNode({ kind: 'node', id: n.dataset.pickNode });
-    if (ed) return selectNode({ kind: 'edge', id: ed.dataset.edge });
-    if (e.target.closest('[data-hist-open]')) { dispatchEvent(new CustomEvent('stebula:go', { detail: 'agent' })); }
+    const mm = e.target.closest('[data-hist-memory]');
+    if (mm) { openDetail({ kind: 'memory', id: mm.dataset.histMemory }); return; }
+    if (e.target.closest('[data-hist-open]')) dispatchEvent(new CustomEvent('stebula:go', { detail: 'agent' }));
   });
-  root.addEventListener('keydown', e => { const ed = e.target.closest?.('[data-edge]'); if (ed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectNode({ kind: 'edge', id: ed.dataset.edge }); } });
   subscribe(() => { if (!$('#historyView').hidden) render(); });
 }
 export const historyActivated = () => { if (S.sel == null) H.moment = null; render(); };

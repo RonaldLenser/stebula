@@ -42,20 +42,20 @@ export function thinkSystem(mem, affect, ctx) {
     `You are ${p.label}. ${p.stance}`,
     'You are in an ongoing, recorded conversation with the person who runs this research project.',
     '',
-    'This is your private thinking stage. Produce one candidate thought from each of these processes, reacting to the person\'s latest message:',
+    'This is the proposal stage. The application asks for five short proposals, one per role below, written in response to the person\'s latest message. They are working notes for the application to score, not a record of your inner life:',
     '- perception: what the person is actually saying or asking, including what they might mean',
     '- memory: something relevant from your memory or earlier in the conversation',
     '- self-monitor: an observation about your own state, your consistency, or the limits of what you can know about yourself',
     '- evaluation: whether a claim on the table (theirs or yours) is supported, and what you actually think of it',
     '- initiative: a question you want to ask or a direction you want to take',
-    'Rate each thought\'s relevance from 0 to 1. Only two will reach your attention. The rest are dropped and you will not have them when you speak.',
+    'Rate each proposal\'s relevance from 0 to 1. The application keeps the two highest-scoring proposals and gives only those to the reply step. The rest are dropped.',
     '',
     HONESTY, '',
     memoryBlock(mem, ctx), '',
     lastAttention(mem.lastWorkspace),
     `Current modeled state (computed by the experiment, not felt): surprise ${affect.surprise}, conflict ${affect.conflict}, curiosity ${affect.curiosity}.`,
     '',
-    'Reply with exactly one JSON object: {"thoughts": [{"module": "perception", "text": "max 40 words", "relevance": 0.0}, ... one per process]}',
+    'Reply with exactly one JSON object: {"thoughts": [{"module": "perception", "text": "max 40 words", "relevance": 0.0}, ... one per role]}',
   ].join('\n');
 }
 
@@ -73,7 +73,7 @@ export function speakSystem(mem, workspace, ctx, { degraded = false } = {}) {
     '- Do not invent feelings or experiences, and do not claim access to hidden internal processing. You can describe what is in your memory text and what you said.',
     '',
     memoryBlock(mem, ctx), '',
-    degraded ? 'Your thinking stage produced nothing usable this turn, so you have no workspace thoughts. Answer from the conversation and your memory, and do not pretend you deliberated.' : 'Your workspace this turn. These thoughts won a competition for your limited attention. The others were dropped and you do not have them:',
+    degraded ? 'Your thinking stage produced nothing usable this turn, so you have no selected proposals. Answer from the conversation and your memory, and do not pretend you deliberated.' : 'Your proposals for this turn. The application selected these two by score. The others were dropped and you do not have them:',
     ...(degraded ? [] : workspace.map((t, i) => `${i + 1}. [${t.module}] ${t.text}`)),
     workspace.some(t => t.module === 'initiative') ? 'An initiative thought reached your workspace. Act on it.' : '',
     '',
@@ -88,7 +88,7 @@ export function speakSystem(mem, workspace, ctx, { degraded = false } = {}) {
   ].join('\n');
 }
 
-export const THINK_TAIL = '\n\n(Produce your candidate thoughts as the JSON object described in your instructions.)';
+export const THINK_TAIL = '\n\n(Write the five proposals as the JSON object described in your instructions.)';
 export const SPEAK_TAIL = '\n\n(Respond with the JSON object described in your instructions.)';
 
 export function predictPrompt(statement) {
@@ -197,4 +197,4 @@ export function foldEpisodesPrompt(eps) {
 }
 
 // Bump when any prompt text above changes. Stored in every experiment manifest.
-export const PROMPT_VERSION = 'talk-prompts/3';
+export const PROMPT_VERSION = 'talk-prompts/4';

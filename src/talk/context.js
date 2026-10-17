@@ -27,11 +27,12 @@ function relevance(query, ep) {
 export function buildContext(mem, { mode = 'on', query = '', select = 'relevant', traits = 'evaluation-only', limits = {}, purpose = '' } = {}) {
   const L = { ...DEFAULT_LIMITS, ...limits };
   const eps = mem.episodes || [];
-  const base = { mode, select, purpose, traits, limits: L, available: eps.length, supplied: [], omitted: eps.length, chars: 0, selfModel: false, lessons: 0, traitIds: [] };
+  const base = { mode, select, purpose, traits, limits: L, available: eps.length, matched: 0, supplied: [], omitted: eps.length, chars: 0, selfModel: false, lessons: 0, traitIds: [] };
   if (mode !== 'on') return { ...base, supplied: [], text: '', block: 'Your memory is switched off for this condition. You have no stored memory.' };
   let ranked;
   if (select === 'recent') ranked = eps.map((e, i) => ({ e, score: null, i })).sort((a, b) => b.i - a.i);
   else ranked = eps.map((e, i) => ({ e, score: relevance(query, e), i })).filter(x => x.score > 0).sort((a, b) => b.score - a.score || b.i - a.i);
+  base.matched = ranked.length; // readings that matched before the size limits cut the list
   const supplied = []; let chars = 0;
   for (const { e, score } of ranked) {
     if (supplied.length >= L.maxEpisodes) break;
@@ -41,7 +42,7 @@ export function buildContext(mem, { mode = 'on', query = '', select = 'relevant'
     supplied.push({ id: e.id, kind: e.kind || 'passage', source: e.source, passage: e.passage, covers: e.covers || null, score: score == null ? null : Math.round(score * 100) / 100, text });
   }
   const lessons = (mem.lessons || []).filter(Boolean);
-  const out = { ...base, supplied, omitted: eps.length - supplied.length, chars, selfModel: true, lessons: lessons.length };
+  const out = { ...base, matched: ranked.length, supplied, omitted: eps.length - supplied.length, chars, selfModel: true, lessons: lessons.length };
   if (traits === 'in-prompt') out.traitIds = (mem.personality?.log || []).map(l => l.id).filter((v, i, a) => a.indexOf(v) === i).slice(0, 8);
   out.text = supplied.length ? `Things you have read or been told (id, source: what you noted). Only those relevant to now are shown, ${out.omitted} others are stored but not shown:\n${supplied.map(s => `- [${s.id}] (${s.source}${s.passage ? `, passage ${s.passage}` : ''}): ${s.text}`).join('\n')}` : '';
   out.block = out.text;
@@ -49,4 +50,4 @@ export function buildContext(mem, { mode = 'on', query = '', select = 'relevant'
 }
 
 // What goes into the record: ids and sizes, not the whole archive.
-export const contextRecord = c => c && ({ mode: c.mode, select: c.select, purpose: c.purpose, traits: c.traits, available: c.available, omitted: c.omitted, chars: c.chars, supplied: c.supplied.map(({ id, kind, source, passage, score }) => ({ id, kind, source, passage, score })), lessons: c.lessons, traitIds: c.traitIds });
+export const contextRecord = c => c && ({ mode: c.mode, select: c.select, purpose: c.purpose, traits: c.traits, available: c.available, matched: c.matched, omitted: c.omitted, chars: c.chars, supplied: c.supplied.map(({ id, kind, source, passage, score }) => ({ id, kind, source, passage, score })), lessons: c.lessons, traitIds: c.traitIds });

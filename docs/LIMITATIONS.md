@@ -49,4 +49,7 @@ Read this before citing any result from this repo.
 45. **History has gaps by design.** The note about the person and the running conversation summary keep only their latest text, so earlier versions cannot be shown. Reading memories later folded into a summary are not shown separately. Turns saved before event logging have no stage times.
 46. **Memory off removes stored memory, not the recent conversation.** The last turns of the conversation window are still given to the model, so an off turn is not a turn with no context.
 47. **Replay is at stage granularity.** Stepping through a turn reveals recorded stage groups. It is a replay of saved records, not a re-run and not live activity.
+48. **The proposal-step refusal is diagnosed, not proven fixed.** All four recorded live proposal calls ended in a provider refusal with no output. The prompt wording was the only difference from the reply step that succeeded, so it was changed, but no live call has been made since. `npm run probe-think -- --yes` compares the old and new wording once each.
+49. **"Nothing was saved or changed" means memory.** The conversation record and the modeled signals are stored on every successful turn. The overview's "Nothing was saved or changed" means the self-description, evidence and notes were not touched, and it says so beneath.
+50. **A failed save is shown for that turn only.** The reply that could not be stored stays on screen until you act, labelled not saved. It is not written to history, because it was never stored.
 

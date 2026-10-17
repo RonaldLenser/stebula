@@ -86,7 +86,7 @@ export function whatChanged(mem, t) {
   }
   const ev = evidenceAt(mem, t);
   if (ev.length) parts.push(`Evidence ${ev.map(e => `${e.direction === 'supports' ? 'for' : 'against'} "${e.name}"`).join(', ')}`);
-  if (a.degraded) parts.unshift('Degraded turn: the thinking step failed, so it is excluded from analysis');
+  if (a.degraded) parts.unshift('Degraded turn: the proposal step failed, so it is excluded from analysis');
   return parts.length ? { text: `${parts.join('. ')}.`, did: true, parts } : { text: 'Nothing in stored memory changed.', did: false, parts };
 }
 
@@ -144,6 +144,7 @@ export function processModel({ mem = null, turn = null, live = null, agent = mem
   }
   const selfSupplied = A && (ctxS || ctxT)?.mode === 'on';
   put('memories', {
+    matched: (ctxS || ctxT)?.matched ?? null, available: (ctxS || ctxT)?.available ?? null,
     status: mem_status, summary: mem_summary, items: memItems, ctx: { think: ctxT ?? null, speak: ctxS ?? null },
     always: selfSupplied ? ['its written self-description', 'its note about the person', 'a summary of older conversation', 'lessons it wrote down'] : [],
     window: 'The recent conversation is supplied either way, even when stored memory is off.',
@@ -169,7 +170,7 @@ export function processModel({ mem = null, turn = null, live = null, agent = mem
 
   // proposals
   let pStatus = 'waiting', pSummary = 'Not generated yet.';
-  if (thinkFailed) { pStatus = 'failed'; pSummary = `The thinking step failed (${b.thinkFailure?.kind || 'unknown'}). No proposals were recorded.`; }
+  if (thinkFailed) { pStatus = 'failed'; pSummary = `The proposal step failed (${b.thinkFailure?.kind || 'unknown'}). No proposals were recorded.`; }
   else if (b.candidates.length) { pStatus = 'done'; pSummary = `${b.candidates.length} proposals, one per thought role.`; }
   else if (isLive) { pStatus = reached('affect') ? 'active' : 'waiting'; pSummary = pStatus === 'active' ? 'The model is writing its candidate thoughts.' : 'Not reached yet.'; }
   else if (known) { pStatus = 'missing'; pSummary = 'No proposals were recorded for this turn. It may predate recording of the thinking step.'; }
@@ -221,6 +222,7 @@ export function processModel({ mem = null, turn = null, live = null, agent = mem
   let cStatus = 'waiting', cSummary = 'Saved when the reply is done.';
   if (A) { cStatus = A.degraded ? 'skipped' : wc.did ? 'done' : 'none'; cSummary = A.degraded ? 'A degraded turn changes no memory and is excluded from analysis.' : wc.text; }
   else if (!isLive && known) { cStatus = 'missing'; cSummary = 'Nothing recorded.'; }
+  else if (isLive && b.saveFailed) { cStatus = 'failed'; cSummary = 'Saving failed. Nothing from this turn was stored.'; }
   else if (isLive && b.phase === 'done') { cStatus = 'done'; cSummary = 'Saved.'; }
   put('changes', {
     status: cStatus, summary: cSummary, revision: rev, evidence: ev, reports, change: wc,
@@ -229,7 +231,7 @@ export function processModel({ mem = null, turn = null, live = null, agent = mem
 
   // Words for each status chip. The status stays the same; the words say what actually happened.
   const memOff = (ctxS || ctxT)?.mode === 'off';
-  const words = { memories: { none: memOff ? ['Memory switched off', 'Memory off'] : ['No relevant memory', 'None relevant'] }, changes: { none: ['Nothing changed', 'No change'] } };
+  const words = { memories: { none: memOff ? ['Memory switched off', 'Memory off'] : ['No relevant memory', 'None relevant'] }, changes: { none: ['Nothing changed', 'No change'], failed: ['Saving failed', 'Not saved'] } };
   for (const n of Object.values(nodes)) { const w = words[n.id]?.[n.status]; n.label = w?.[0] ?? STATUS_TEXT[n.status]; n.short = w?.[1] ?? SHORT_TEXT[n.status]; }
 
   // Connections. `given` is what the recorded request shows was supplied, never what caused an effect.
@@ -250,9 +252,10 @@ export function processModel({ mem = null, turn = null, live = null, agent = mem
   ];
 
   const overall = !known ? { state: 'unrecorded', text: 'Nothing selected.' }
+    : isLive && b.saveFailed ? { state: 'save-failed', text: 'The reply was written but could not be saved.' }
     : isLive ? { state: 'processing', text: 'Turn in progress.' }
     : !M ? { state: 'unrecorded', text: 'This turn has no recorded process.' }
-    : thinkFailed ? { state: 'incomplete', text: 'Incomplete: the thinking step failed, so the reply was written without proposals.' }
+    : thinkFailed ? { state: 'incomplete', text: 'Incomplete: the proposal step failed, so the reply was written without proposals.' }
     : degraded ? { state: 'incomplete', text: 'Incomplete: part of the process was recovered or failed.' }
     : { state: 'complete', text: 'Every stage completed.' };
 

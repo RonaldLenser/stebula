@@ -44,7 +44,7 @@ export async function runStage(llm, spec) {
     }
     if (!kind) {
       const stop = meta.stop_reason || null;
-      if (stop === 'refusal') { kind = 'refusal'; detail = 'The provider refused this request (stop_reason: refusal).'; }
+      if (stop === 'refusal') { kind = 'refusal'; detail = `The provider ended the response with stop_reason "refusal" and ${meta.usage?.output_tokens ?? 'an unknown number of'} output tokens. No text was returned.`; }
       else if (!String(raw || '').trim()) { kind = stop === 'max_tokens' ? 'truncation' : 'empty'; detail = `No text returned (stop_reason: ${stop ?? 'unknown'}).`; }
       else if (spec.text) obj = String(raw).trim(); // plain-text stage: any non-empty text is the value
       else {

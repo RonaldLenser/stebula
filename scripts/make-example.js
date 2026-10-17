@@ -29,7 +29,7 @@ function stub({ refuseThink = false, badAnswer = false } = {}) {
   return async ({ stage, messages, user, meta }) => {
     if (meta) Object.assign(meta, { model: 'scripted-stub', stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 40 } });
     const text = (messages || [{ content: user }]).map(m => m.content).join('\n');
-    if (stage === 'think' || stage === 'digest-think') { if (refuseThink) { meta.stop_reason = 'refusal'; return ''; } return JSON.stringify({ thoughts: THOUGHTS }); }
+    if (stage === 'think' || stage === 'digest-think') { if (refuseThink) { Object.assign(meta, { stop_reason: 'refusal', usage: { input_tokens: 100, output_tokens: 0 } }); return ''; } return JSON.stringify({ thoughts: THOUGHTS }); }
     if (stage === 'digest-read') {
       const keeper = /lighthouse/i.test(text);
       return JSON.stringify({ noticed: keeper ? 'Sure entries were the least reliable ones.' : 'Asking why a thing failed came before rebuilding it.', connects: keeper ? [] : ['m1'], question: keeper ? 'How would I notice my own overconfidence?' : 'What is my version of walking the river?', updates: [] });

@@ -115,3 +115,11 @@ Goal: make the agent the center of the experience. Keep the depth of the process
 8. Calm visual system, keyboard and reduced-motion support, desktop and mobile.
 9. Tests for the event mapping, history and missing or failed stages (`scripts/test-process.js`) and browser checks (`npm run ui-check`).
 
+## Prompt 6: One reliable, readable interaction (status: done)
+
+1. Trace the proposal-generation failure through request, provider response, parsing, validation and event recording. Classify refusal, unreadable output, empty, truncated and transport failures separately. Never bypass a refusal or fabricate proposals.
+2. Replace the three-column Agent screen with two areas: the conversation and a compact overview. Details open in a drawer that is closed by default.
+3. Overview answers three questions from recorded state: what went into this response, what did it consider, what changed afterward. One notice for an incomplete interaction.
+4. Show the reply once. Move raw scores, timestamps, attempts and the connection diagram behind explicit actions.
+5. Tests for classification, a reply after a failed proposal step, saved, unchanged and failed-to-save outcomes, older turns, and switching agents (`scripts/test-overview.js`), plus browser checks.
+

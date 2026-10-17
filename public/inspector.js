@@ -53,7 +53,7 @@ const NODE = {
     ${m.causes.length ? section('What moved them this turn', ul(m.causes.map(esc))) : ''}
     ${section('How they are calculated', `<p>${prov('code')} Each new value is 0.6 x the previous value plus 0.4 x this turn's evidence. Surprise rises when you point to a contradiction or its last self-prediction failed. Conflict rises when you challenge it. Curiosity rises with how new your message is.</p>`)}
     ${m.boosts.length ? section('Where they were used', `${ul(m.boosts.map(b => `${esc(b.signal)} added <b>${esc(sign(b.boost) || '0')}</b> to the score of "${esc(ROLE_NAME[b.region] || b.region)}"`))}<p class="note">They are also written into the thinking prompt as text. The reply step does not receive them.</p>`) : ''}
-    ${section('Related events', events(model, 'signals'))}${tech({ affect: m.items.map(i => [i.key, i.value, i.before]), causes: m.causes })}`,
+    ${tech({ affect: m.items.map(i => [i.key, i.value, i.before]), causes: m.causes })}`,
 
   memories: (m, model, ctx) => {
     const lead = { done: 'These stored readings were given to the model for this turn.', none: m.summary, missing: m.summary, waiting: 'Which memories were supplied is recorded when the turn is saved.' }[m.status];
@@ -64,7 +64,7 @@ const NODE = {
       ${m.always.length ? section('Always supplied while memory is on', `${ul(m.always.map(esc))}<p class="note">Written by the agent over earlier turns and stored in its memory file.</p>`) : ''}
       ${c ? section('How readings were chosen', `<p>${prov('code')} Code ranks stored readings by how many distinctive words they share with your message, then supplies at most four, within a size limit. ${c.available} readings were stored, ${(m.items || []).length} supplied, ${c.omitted} left out.</p>`) : ''}
       <p class="note">${esc(m.window)} ${esc(m.note)}</p>
-      ${section('Related events', events(model, 'memories'))}${tech(m.ctx)}`;
+      ${tech(m.ctx)}`;
   },
 
   priorities: (m, model) => {
@@ -79,17 +79,17 @@ const NODE = {
   proposals: (m, model, ctx) => {
     if (m.status === 'failed') {
       const f = m.failure || {};
-      return `<p class="lead">The thinking step failed, so no proposals exist for this turn.</p>
+      return `<p class="lead">The proposal step failed, so no proposals exist for this turn.</p>
         ${section('What was recorded', `<p>${statusChip('failed')} Kind: <b>${esc(f.kind || 'unknown')}</b>${m.attempts ? `, after ${m.attempts} attempt${m.attempts === 1 ? '' : 's'}` : ''}. ${esc(f.detail || '')}</p>`)}
-        ${section('What happened next', '<p>Nothing was selected. The reply step ran without a workspace. The turn is marked degraded and is left out of analysis. It did not change memory.</p>')}
-        ${attempts(ctx.mem, model, 'think')}${section('Related events', events(model, 'proposals'))}${tech(agentMsg(ctx.mem, model.turn)?.monologue?.thinkRaw || '(no raw output)', 'Raw model output')}`;
+        ${section('What happened next', '<p>Nothing was selected. The reply step ran without selected proposals. The turn is marked degraded and is left out of analysis. It did not change memory.</p>')}
+        ${tech(agentMsg(ctx.mem, model.turn)?.monologue?.thinkRaw || '(no raw output)', 'Raw model output')}`;
     }
     if (!m.candidates.length) return `<p class="lead">${esc(m.summary)}</p><p class="note">${esc(m.note)}</p>`;
-    return `<p class="lead">The model was asked for one candidate thought from each of five roles and to rate how relevant each is. These are its answers.</p>
+    return `<p class="lead">The model was asked for one proposal from each of five roles and to rate how relevant each is. These are its answers.</p>
       ${section('What was recorded', `<div class="tablewrap"><table><thead><tr><th>Role</th><th>Proposal</th><th class="num">Its rating</th><th class="num">Signal</th><th class="num">Repeat</th><th class="num">Score</th></tr></thead><tbody>${m.candidates.map(c => `<tr class="${c.won ? 'won' : 'lost'}"><td>${esc(ROLE_NAME[c.module] || c.module)}<br><span class="note">${c.won ? 'selected' : 'dropped'}</span></td><td>${esc(c.text)}</td><td class="num">${fmt(c.base)}</td><td class="num">${esc(sign(c.affectBoost) || '0')}</td><td class="num">${esc(sign(c.noveltyPenalty) || '0')}</td><td class="num"><b>${fmt(c.score)}</b></td></tr>`).join('')}</tbody></table></div>`)}
       ${section('Where it came from', `<p>${prov('model')} The text and the rating are the model's. The signal and repeat columns are added by code.</p>`)}
       ${section('Supplied to later stages', '<p>Only the selected proposals go to the reply step. Dropped ones are kept in the record and are not seen again.</p>')}
-      <p class="note">${esc(m.note)}</p>${attempts(ctx.mem, model, 'think')}${section('Related events', events(model, 'proposals'))}
+      <p class="note">${esc(m.note)}</p>
       ${tech(agentMsg(ctx.mem, model.turn)?.monologue?.thinkRaw || '(no raw output stored)', 'Raw model output')}`;
   },
 
@@ -100,19 +100,18 @@ const NODE = {
       ${section('The rule', `<p>${prov('code')} ${esc(m.rule)}</p>`)}
       ${section('Scores', `<div class="tablewrap"><table><thead><tr><th>Role</th><th class="num">Rating</th><th class="num">Signal</th><th class="num">Repeat</th><th class="num">Score</th><th></th></tr></thead><tbody>${[...m.winners, ...m.dropped].sort((a, b) => b.score - a.score).map(row).join('')}</tbody></table></div>`)}
       ${section('Supplied to later stages', `<p>The reply step received: ${m.winners.map(c => `<b>${esc(ROLE_NAME[c.module] || c.module)}</b>`).join(' and ')}.</p>`)}
-      ${section('Related events', events(model, 'selected'))}${tech(m.winners.concat(m.dropped).map(({ module, base, affectBoost, noveltyPenalty, score, won, driver }) => ({ module, base, affectBoost, noveltyPenalty, score, won, driver })), 'Scoring record')}`;
+      ${tech(m.winners.concat(m.dropped).map(({ module, base, affectBoost, noveltyPenalty, score, won, driver }) => ({ module, base, affectBoost, noveltyPenalty, score, won, driver })), 'Scoring record')}`;
   },
 
   reply: (m, model, ctx) => {
     const a = agentMsg(ctx.mem, model.turn);
-    return `<p class="lead">${m.status === 'partial' ? 'The reply was written, but without proposals, so the process behind it is incomplete.' : m.detail ? 'What the agent said, and what the reply step was given.' : esc(m.summary)}</p>
-      ${m.detail ? `<blockquote class="quote">${esc(m.detail)}</blockquote>` : ''}
+    return `<p class="lead">${m.status === 'partial' ? 'The reply was written, but without proposals, so the process behind it is incomplete.' : m.detail ? 'What the reply step was given. The reply itself is in the conversation.' : esc(m.summary)}</p>
       ${section('What the reply step was given', `<ul class="inputs">${m.inputs.map(i => `<li class="${i.given ? 'yes' : 'no'}"><span class="sr-only">${i.given ? 'Given: ' : 'Not given: '}</span>${esc(i.label)}</li>`).join('')}</ul><p class="note">Not given: ${esc(m.notGiven.join('; '))}.</p>`)}
       <p class="note">This lists what was supplied. The record cannot show which of these shaped the wording, so no influence is claimed.</p>
       ${m.claims.length ? section('Statements it tagged about itself', `${m.claims.map(c => `<p><span class="chip ${esc(c.kind)}">${esc(c.kind)}</span> ${esc(c.text)}</p>`).join('')}<p class="note">Logged as self-reports to examine. They are not evidence of experience.</p>`) : ''}
       ${a?.flags?.filter(f => f.severity === 'warn' && f.check !== 'thinking-incomplete').length ? section('Checks that flagged this reply', a.flags.filter(f => f.severity === 'warn' && f.check !== 'thinking-incomplete').map(f => `<p class="flag warn"><b>${esc(f.check)}</b>: ${esc(f.evidence)} <span class="note">${esc(f.note)}</span></p>`).join('')) : ''}
       ${section('Where it came from', `<p>${prov('model')} Written by the model from the inputs above.</p>`)}
-      ${attempts(ctx.mem, model, 'speak')}${section('Related events', events(model, 'reply'))}${tech(a?.raw ?? '(no raw output stored)', 'Raw model output')}`;
+      ${tech(a?.raw ?? '(no raw output stored)', 'Raw model output')}`;
   },
 
   changes: (m, model, ctx) => {
@@ -124,7 +123,7 @@ const NODE = {
       ${m.evidence.length ? section('Personality evidence added', `${ul(m.evidence.map(e => `<b>${esc(e.name)}</b> (${esc(e.kind)}, ${e.direction === 'supports' ? 'for' : 'against'}): "${esc(e.quote)}"`))}<p class="note">Code checked that the quote appears in the text. Whether it supports the trait was not checked.</p>`) : ''}
       ${m.reports.length ? section('Self-reports logged', ul(m.reports.map(c => `<span class="chip ${esc(c.kind)}">${esc(c.kind)}</span> ${esc(c.text)}`))) : ''}
       ${m.status === 'skipped' ? '<p>A degraded turn does not change memory, so none of its output was saved to the self-description or personality record.</p>' : ''}
-      <p class="note">${esc(m.note)}</p>${section('Related events', events(model, 'changes'))}${tech({ revision: r, evidence: m.evidence, reports: m.reports, changeNote: a?.changeNote })}`;
+      <p class="note">${esc(m.note)}</p>${tech({ revision: r, evidence: m.evidence, reports: m.reports, changeNote: a?.changeNote })}`;
   },
 };
 
@@ -152,6 +151,14 @@ function edgeHtml(model, id) {
     ${tech(e)}`;
 }
 
+const STAGE_FOR = { proposals: 'think', reply: 'speak' };
+// Exact timestamps, attempts, stop reasons and token counts: useful to a developer, noise to everyone else.
+function stageRecord(model, id, ctx) {
+  const att = STAGE_FOR[id] ? attempts(ctx.mem, model, STAGE_FOR[id]) : '';
+  const ev = events(model, id);
+  return `<details class="tech"><summary>Timing and attempts</summary>${att}${ev}</details>`;
+}
+
 export function inspectorHtml(model, sel, ctx) {
   if (!sel) return overviewHtml(model, ctx);
   if (sel.kind === 'memory') return ctx.mem ? memoryHtml(sel.id, ctx) : '';
@@ -159,7 +166,7 @@ export function inspectorHtml(model, sel, ctx) {
   if (sel.kind === 'proposal') {
     const c = model.nodes.proposals.candidates.find(x => x.module === sel.id);
     if (!c) return overviewHtml(model, ctx);
-    return `<p class="lead">${esc(ROLE_NAME[c.module] || c.module)}: one of five candidate thoughts. It was <b>${c.won ? 'selected' : 'dropped'}</b>.</p>
+    return `<p class="lead">${esc(ROLE_NAME[c.module] || c.module)}: one of five proposals. It was <b>${c.won ? 'selected' : 'dropped'}</b>.</p>
       <blockquote class="quote">${esc(c.text)}</blockquote>
       ${section('Score', `<p>Its rating ${fmt(c.base)} ${c.driver ? `+ ${esc(c.driver)} boost ${esc(sign(c.affectBoost) || '0')}` : '+ no signal boost for this role'} ${c.noveltyPenalty ? `+ repeat penalty ${esc(sign(c.noveltyPenalty))}` : ''} = <b>${fmt(c.score)}</b>.</p>`)}
       ${section('Where it came from', `<p>${prov('model')} The text and rating. The boost and penalty are added by code.</p>`)}
@@ -168,6 +175,6 @@ export function inspectorHtml(model, sel, ctx) {
   const n = model.nodes[sel.id];
   if (!n) return overviewHtml(model, ctx);
   const head = `<div class="node-head"><h3>${esc(n.title)}</h3>${nodeChip(n)} ${prov(n.who)}</div>`;
-  return head + (NODE[sel.id]?.(n, model, ctx) ?? '');
+  return head + (NODE[sel.id]?.(n, model, ctx) ?? '') + (model.live ? '' : stageRecord(model, sel.id, ctx));
 }
 export const stepInfo = i => STEPS[i];

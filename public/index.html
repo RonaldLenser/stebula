@@ -45,8 +45,6 @@
     </div>
     <dl class="facts4">
       <div><dt>Doing now</dt><dd id="sumStatus"></dd></div>
-      <div><dt>Responding to</dt><dd id="sumFocus"></dd></div>
-      <div><dt>Latest</dt><dd id="sumLatest"></dd></div>
       <div><dt>Memory</dt><dd><span id="sumMemory"></span>
         <label class="check" title="Off: this turn runs without any stored memory, so you can see what memory changes."><input type="checkbox" id="memoryOn" checked> Use stored memory</label></dd></div>
     </dl>
@@ -54,8 +52,7 @@
   <div id="banner" class="banner" hidden></div>
   <div class="paneseg" id="paneSeg" role="group" aria-label="Show">
     <button class="seg-btn" data-pane="convo" aria-pressed="true">Conversation</button>
-    <button class="seg-btn" data-pane="map" aria-pressed="false">How it was made</button>
-    <button id="inspectBtn" class="seg-btn" aria-expanded="false" aria-controls="inspector">Details</button>
+    <button class="seg-btn" data-pane="overview" aria-pressed="false">Overview</button>
   </div>
 
   <div class="agent-grid">
@@ -106,26 +103,12 @@
       </div>
     </div>
 
-    <section class="mapcol" id="mapPane" aria-label="How this answer was made">
-      <div class="map-head">
-        <div><h2>How this answer was made</h2><p class="note"><span id="mapTurn"></span>. <span id="mapStatus"></span></p></div>
-        <div class="steps" role="group" aria-label="Step through the recorded stages">
-          <button id="stepStart" class="btn small">Step through</button>
-          <button id="stepPrev" class="btn small" hidden>Previous stage</button>
-          <button id="stepNext" class="btn small" hidden>Next stage</button>
-          <button id="stepAll" class="btn ghost small" hidden>Show all</button>
-        </div>
+    <aside class="overview" id="overview" aria-label="Overview of the selected interaction">
+      <div class="ov-head">
+        <div><h2>This response</h2><p id="ovTurn" class="ovturn"></p></div>
+        <button id="viewDiagram" class="btn ghost small" title="Every stage of the turn and the hand-offs between them">Process diagram</button>
       </div>
-      <p id="stepInfo" class="stepinfo" role="status"></p>
-      <div id="processMap"></div>
-      <p class="note mapnote">This is the software around the model: what it was given, what it proposed, what code selected and what was saved. It does not show what happens inside the model.</p>
-    </section>
-
-    <aside id="inspector" class="inspector" aria-label="Inspector">
-      <div class="insp-bar"><div id="inspHead" class="insp-head"></div>
-        <button id="clearSel" class="btn ghost small" title="Back to the turn overview">Overview</button>
-        <button id="inspClose" class="btn ghost small insp-close">Close</button></div>
-      <div id="panel-inspector" class="insp-body" tabindex="0" aria-live="polite"></div>
+      <div id="ovBody"></div>
     </aside>
   </div>
 </section>
@@ -140,7 +123,7 @@
   </div></div>
   <div class="hcol-main">
     <div id="hDetail"></div>
-    <section id="hMapPane"><h3>How that answer was made</h3><p class="note" id="hMapNote"></p><div id="hMapBox"></div></section>
+    <section id="hOverview" aria-label="Overview of this response"><h3>Overview of this response</h3><div id="hOvBody"></div></section>
     <div id="hState"></div>
     <details class="growth"><summary>Personality evidence over time (an evaluation record, not shown to the agent)</summary>
       <p class="note">What grows is the agent's memory file. The model underneath does not change. Traits are evidence-scored patterns, not proof of a personality.</p>
@@ -148,7 +131,6 @@
       <div class="scrub"><label for="growthSlider">Replay formation</label><input id="growthSlider" type="range" min="0" max="0" value="0" disabled><span id="growthStep"></span></div>
       <div id="traitList"></div><div id="provenance"></div></details>
   </div>
-  <aside id="hInsp" class="hcol-insp" aria-label="Inspector"><div class="sticky"><h3>Inspector</h3><div id="hInspector" class="insp-body"></div></div></aside>
 </section>
 
 <!-- ===================== LAB ===================== -->
@@ -307,6 +289,16 @@
   </div>
 </section>
 </main>
+
+<aside id="drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" hidden>
+  <div class="drawer-bar">
+    <button id="drawerBack" class="btn ghost small" hidden>Back</button>
+    <h2 id="drawerTitle" tabindex="-1">Details</h2>
+    <span id="drawerCtx"></span>
+    <button id="drawerClose" class="btn small">Close</button>
+  </div>
+  <div id="drawerBody" class="insp-body"></div>
+</aside>
 
 <footer class="honesty">
   Everything shown comes from recorded state. Statements an agent makes about feelings or awareness are logged as self-reports, not evidence of experience. All change lives in prompts and stored memory text; model weights never change.

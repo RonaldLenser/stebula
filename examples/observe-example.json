@@ -1,9 +1,9 @@
 {
  "scripted": true,
  "label": "Scripted example. Produced by a deterministic test stub, not a model.",
- "generatedAt": "2026-10-17T01:26:48.554Z",
+ "generatedAt": "2026-10-17T02:08:12.852Z",
  "revision": {
-  "commit": "a43a7760805ae9bacf62b739104ce087dfb6f6ed",
+  "commit": "3c0d52214e7a613391fbdf74f16e22ff3f189208",
   "dirty": true,
   "branch": "improve/audit-2026-10"
  },
@@ -11,8 +11,8 @@
  "mem": {
   "format": "threshold-talk/2",
   "agent": "A",
-  "createdAt": "2026-10-17T01:26:48.524Z",
-  "lastActivity": "2026-10-17T01:26:48.542Z",
+  "createdAt": "2026-10-17T02:08:12.822Z",
+  "lastActivity": "2026-10-17T02:08:12.840Z",
   "lastReflectionAt": null,
   "version": 1,
   "turns": 3,
@@ -40,13 +40,13 @@
    {
     "role": "user",
     "text": "What do you remember about the lighthouse keeper?",
-    "at": "2026-10-17T01:26:48.534Z",
+    "at": "2026-10-17T02:08:12.832Z",
     "turn": 1
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.534Z",
+    "at": "2026-10-17T02:08:12.832Z",
     "turn": 1,
     "claims": [
      {
@@ -151,6 +151,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 1,
         "omitted": 1,
         "chars": 42,
         "supplied": [
@@ -191,6 +192,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 1,
         "omitted": 1,
         "chars": 42,
         "supplied": [
@@ -212,37 +214,37 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 5,
        "stage": "selfmodel",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 6,
        "stage": "personality",
-       "at": "2026-10-17T01:26:48.537Z"
+       "at": "2026-10-17T02:08:12.835Z"
       }
      ],
      "context": {
@@ -252,6 +254,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 1,
        "omitted": 1,
        "chars": 42,
        "supplied": [
@@ -272,6 +275,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 1,
        "omitted": 1,
        "chars": 42,
        "supplied": [
@@ -295,13 +299,13 @@
    {
     "role": "user",
     "text": "Hello again.",
-    "at": "2026-10-17T01:26:48.539Z",
+    "at": "2026-10-17T02:08:12.837Z",
     "turn": 2
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.539Z",
+    "at": "2026-10-17T02:08:12.837Z",
     "turn": 2,
     "claims": [
      {
@@ -421,6 +425,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -453,6 +458,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -466,32 +472,32 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.838Z"
       },
       {
        "seq": 5,
        "stage": "personality",
-       "at": "2026-10-17T01:26:48.540Z"
+       "at": "2026-10-17T02:08:12.838Z"
       }
      ],
      "context": {
@@ -501,6 +507,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -513,6 +520,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -528,13 +536,13 @@
    {
     "role": "user",
     "text": "Hello once more.",
-    "at": "2026-10-17T01:26:48.542Z",
+    "at": "2026-10-17T02:08:12.840Z",
     "turn": 3
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.542Z",
+    "at": "2026-10-17T02:08:12.840Z",
     "turn": 3,
     "claims": [
      {
@@ -562,7 +570,7 @@
      {
       "check": "thinking-incomplete",
       "severity": "warn",
-      "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+      "evidence": "think: refusal. The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned.",
       "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
       "turn": 3
      }
@@ -590,17 +598,17 @@
        "status": "failed",
        "failure": {
         "kind": "refusal",
-        "detail": "The provider refused this request (stop_reason: refusal)."
+        "detail": "The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned."
        },
        "attempts": [
         {
          "n": 1,
          "kind": "refusal",
-         "detail": "The provider refused this request (stop_reason: refusal).",
+         "detail": "The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned.",
          "stop_reason": "refusal",
          "usage": {
           "input_tokens": 100,
-          "output_tokens": 40
+          "output_tokens": 0
          },
          "model": "scripted-stub",
          "latency_ms": 0,
@@ -613,6 +621,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -635,7 +644,7 @@
           "output_tokens": 40
          },
          "model": "scripted-stub",
-         "latency_ms": 0,
+         "latency_ms": 1,
          "max_tokens": 3000
         }
        ],
@@ -645,6 +654,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -658,27 +668,27 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.841Z"
       }
      ],
      "context": {
@@ -688,6 +698,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -700,6 +711,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -717,13 +729,13 @@
    {
     "role": "user",
     "text": "What do you remember about the lighthouse keeper?",
-    "at": "2026-10-17T01:26:48.534Z",
+    "at": "2026-10-17T02:08:12.832Z",
     "turn": 1
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.534Z",
+    "at": "2026-10-17T02:08:12.832Z",
     "turn": 1,
     "claims": [
      {
@@ -828,6 +840,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 1,
         "omitted": 1,
         "chars": 42,
         "supplied": [
@@ -868,6 +881,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 1,
         "omitted": 1,
         "chars": 42,
         "supplied": [
@@ -889,37 +903,37 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 5,
        "stage": "selfmodel",
-       "at": "2026-10-17T01:26:48.534Z"
+       "at": "2026-10-17T02:08:12.832Z"
       },
       {
        "seq": 6,
        "stage": "personality",
-       "at": "2026-10-17T01:26:48.537Z"
+       "at": "2026-10-17T02:08:12.835Z"
       }
      ],
      "context": {
@@ -929,6 +943,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 1,
        "omitted": 1,
        "chars": 42,
        "supplied": [
@@ -949,6 +964,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 1,
        "omitted": 1,
        "chars": 42,
        "supplied": [
@@ -972,13 +988,13 @@
    {
     "role": "user",
     "text": "Hello again.",
-    "at": "2026-10-17T01:26:48.539Z",
+    "at": "2026-10-17T02:08:12.837Z",
     "turn": 2
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.539Z",
+    "at": "2026-10-17T02:08:12.837Z",
     "turn": 2,
     "claims": [
      {
@@ -1098,6 +1114,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -1130,6 +1147,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -1143,32 +1161,32 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.837Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.539Z"
+       "at": "2026-10-17T02:08:12.838Z"
       },
       {
        "seq": 5,
        "stage": "personality",
-       "at": "2026-10-17T01:26:48.540Z"
+       "at": "2026-10-17T02:08:12.838Z"
       }
      ],
      "context": {
@@ -1178,6 +1196,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -1190,6 +1209,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -1205,13 +1225,13 @@
    {
     "role": "user",
     "text": "Hello once more.",
-    "at": "2026-10-17T01:26:48.542Z",
+    "at": "2026-10-17T02:08:12.840Z",
     "turn": 3
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-17T01:26:48.542Z",
+    "at": "2026-10-17T02:08:12.840Z",
     "turn": 3,
     "claims": [
      {
@@ -1239,7 +1259,7 @@
      {
       "check": "thinking-incomplete",
       "severity": "warn",
-      "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+      "evidence": "think: refusal. The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned.",
       "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
       "turn": 3
      }
@@ -1267,17 +1287,17 @@
        "status": "failed",
        "failure": {
         "kind": "refusal",
-        "detail": "The provider refused this request (stop_reason: refusal)."
+        "detail": "The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned."
        },
        "attempts": [
         {
          "n": 1,
          "kind": "refusal",
-         "detail": "The provider refused this request (stop_reason: refusal).",
+         "detail": "The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned.",
          "stop_reason": "refusal",
          "usage": {
           "input_tokens": 100,
-          "output_tokens": 40
+          "output_tokens": 0
          },
          "model": "scripted-stub",
          "latency_ms": 0,
@@ -1290,6 +1310,7 @@
         "purpose": "think",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -1312,7 +1333,7 @@
           "output_tokens": 40
          },
          "model": "scripted-stub",
-         "latency_ms": 0,
+         "latency_ms": 1,
          "max_tokens": 3000
         }
        ],
@@ -1322,6 +1343,7 @@
         "purpose": "speak",
         "traits": "evaluation-only",
         "available": 2,
+        "matched": 0,
         "omitted": 2,
         "chars": 0,
         "supplied": [],
@@ -1335,27 +1357,27 @@
       {
        "seq": 0,
        "stage": "heard",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 1,
        "stage": "affect",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 2,
        "stage": "thoughts",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 3,
        "stage": "workspace",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.840Z"
       },
       {
        "seq": 4,
        "stage": "speaking",
-       "at": "2026-10-17T01:26:48.542Z"
+       "at": "2026-10-17T02:08:12.841Z"
       }
      ],
      "context": {
@@ -1365,6 +1387,7 @@
        "purpose": "think",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -1377,6 +1400,7 @@
        "purpose": "speak",
        "traits": "evaluation-only",
        "available": 2,
+       "matched": 0,
        "omitted": 2,
        "chars": 0,
        "supplied": [],
@@ -1394,7 +1418,7 @@
    "events": [
     {
      "id": "e1",
-     "at": "2026-10-17T01:26:48.537Z",
+     "at": "2026-10-17T02:08:12.835Z",
      "source": "Conversation 2026-10-17",
      "sourceType": "talk",
      "ref": {
@@ -1404,7 +1428,7 @@
     },
     {
      "id": "e2",
-     "at": "2026-10-17T01:26:48.540Z",
+     "at": "2026-10-17T02:08:12.838Z",
      "source": "Conversation 2026-10-17",
      "sourceType": "talk",
      "ref": {
@@ -1423,7 +1447,7 @@
      "direction": "supports",
      "quote": "ask before I assume",
      "source": "Conversation 2026-10-17",
-     "at": "2026-10-17T01:26:48.537Z",
+     "at": "2026-10-17T02:08:12.835Z",
      "quotePresent": true,
      "supportReview": "unreviewed"
     },
@@ -1436,7 +1460,7 @@
      "direction": "supports",
      "quote": "ask before I assume",
      "source": "Conversation 2026-10-17",
-     "at": "2026-10-17T01:26:48.540Z",
+     "at": "2026-10-17T02:08:12.838Z",
      "quotePresent": true,
      "supportReview": "unreviewed"
     }
@@ -1454,7 +1478,7 @@
     "question": "How would I notice my own overconfidence?",
     "connects": [],
     "excerpt": "A lighthouse keeper logged the weather every hour for thirty years. The entries he trusted least were the ones he wrote when he was sure.",
-    "at": "2026-10-17T01:26:48.526Z",
+    "at": "2026-10-17T02:08:12.824Z",
     "parseError": false,
     "status": "ok",
     "degraded": [],
@@ -1472,7 +1496,7 @@
      "m1"
     ],
     "excerpt": "The village bridge was rebuilt twice after floods. The second time, a young engineer asked why the old bridge had failed before she drew anything.",
-    "at": "2026-10-17T01:26:48.531Z",
+    "at": "2026-10-17T02:08:12.829Z",
     "parseError": false,
     "status": "ok",
     "degraded": [],
@@ -1484,7 +1508,7 @@
   "revisions": [
    {
     "turn": 1,
-    "at": "2026-10-17T01:26:48.534Z",
+    "at": "2026-10-17T02:08:12.832Z",
     "before": {
      "beliefs": [],
      "uncertainties": [],
@@ -1538,7 +1562,7 @@
    {
     "check": "thinking-incomplete",
     "severity": "warn",
-    "evidence": "think: refusal. The provider refused this request (stop_reason: refusal).",
+    "evidence": "think: refusal. The provider ended the response with stop_reason \"refusal\" and 0 output tokens. No text was returned.",
     "note": "No usable thoughts this turn, so the workspace did not compete. The turn is marked degraded and excluded from analysis.",
     "turn": 3
    }
@@ -1546,7 +1570,7 @@
   "audits": [],
   "selfTests": [
    {
-    "at": "2026-10-17T01:26:48.545Z",
+    "at": "2026-10-17T02:08:12.843Z",
     "turn": 3,
     "statement": "My memory is a file I am shown each turn.",
     "assessment": false,
@@ -1557,6 +1581,7 @@
      "purpose": "self-test",
      "traits": "evaluation-only",
      "available": 2,
+     "matched": 0,
      "omitted": 2,
      "chars": 0,
      "supplied": [],
@@ -1592,7 +1617,7 @@
     "match": "yes"
    },
    {
-    "at": "2026-10-17T01:26:48.547Z",
+    "at": "2026-10-17T02:08:12.845Z",
     "turn": 3,
     "statement": "An honest I do not know beats a confident guess.",
     "assessment": false,
@@ -1603,6 +1628,7 @@
      "purpose": "self-test",
      "traits": "evaluation-only",
      "available": 2,
+     "matched": 0,
      "omitted": 2,
      "chars": 0,
      "supplied": [],

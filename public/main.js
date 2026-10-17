@@ -1,5 +1,6 @@
 // Boot and navigation for the three destinations: Agent, History, Lab.
 import { $, initTheme, loadConfig, config } from '/core.js';
+import { closeDetail, S } from '/store.js';
 import { initAgent, agentActivated, render as renderAgent } from '/agent.js';
 import { initHistory, historyActivated } from '/history.js';
 import { initExperiments } from '/experiments.js';
@@ -17,7 +18,7 @@ function go(view, { replace = false, pane = null } = {}) {
   for (const [k, sel] of Object.entries(VIEWS)) $(sel).hidden = k !== view;
   for (const k of Object.keys(VIEWS)) $(`#view${k[0].toUpperCase()}${k.slice(1)}`).setAttribute('aria-pressed', String(k === view));
   document.body.dataset.view = view;
-  if (view !== 'agent') document.body.classList.remove('inspect-open');
+  if (view === 'lab' && S.node) closeDetail();
   if (view === 'lab' && pane) showLab(pane);
   const url = `#${view}`;
   if (replace) history.replaceState(null, '', url); else if (location.hash.split('/')[0] !== url) history.pushState(null, '', url);

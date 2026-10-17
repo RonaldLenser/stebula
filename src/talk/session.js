@@ -246,7 +246,12 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}, record 
       if (sum.ok) { mem.summary = str(sum.value, 2500); mem.active = mem.active.slice(FOLD); }
       // on failure keep everything: nothing is lost, the fold is retried next turn
     }
-    await store.save(mem);
+    try { await store.save(mem); } catch (e) {
+      // The reply exists but was not stored. Say so, and never report the turn as saved.
+      emit('save_failed', { turn: mem.turns, detail: String(e.message || e).slice(0, 200) });
+      record('turn_save_failed', { turn: mem.turns, detail: String(e.message || e).slice(0, 300) });
+      throw new StageError('save', 'save', `The turn could not be written to the memory file: ${String(e.message || e).slice(0, 160)}`, []);
+    }
     record('turn', { turn: mem.turns, user: userText, mode: opts.input === 'spoken' ? 'spoken' : 'typed', reply: turn.reply, status: turn.status, degraded, excludeFromAnalysis: isDegraded, stages, parseError: false, claims: turn.claims, flags, changeNote: turn.changeNote, selfModelChanged: turn.selfModelChanged, affectBefore, affect, causes, candidates, thinkParsed: think.ok, memoryMode });
     emit('done', { turn: mem.turns, status: turn.status, degraded });
     return { mem, turn: { ...turn, flags, monologue } };

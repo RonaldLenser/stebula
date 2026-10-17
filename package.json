@@ -12,7 +12,8 @@
     "batch": "node scripts/batch.js",
     "docs": "node scripts/gen-docs.js",
     "example": "node scripts/make-example.js",
-    "ui-check": "node scripts/ui-check.js"
+    "ui-check": "node scripts/ui-check.js",
+    "probe-think": "node scripts/probe-think.js"
   },
   "engines": {
     "node": ">=18"

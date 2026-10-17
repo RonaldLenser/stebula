@@ -10,6 +10,7 @@ const RECOVERY = {
   empty: 'The model returned no text. Retry.',
   transport: 'The model service did not answer. Check your connection, then retry.',
   timeout: 'The model took too long to answer. Retry.',
+  save: 'The reply was written but could not be stored. Check that the data folder is writable, then retry.',
   budget: 'The call budget was reached. Raise it on purpose or lower the size of the run.',
 };
 

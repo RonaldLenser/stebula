@@ -7,7 +7,7 @@ export const STAGES = ['heard', 'affect', 'thoughts', 'workspace', 'speaking', '
 export const BOOST = 0.4; // same weight workspace.js applies to affect
 
 // thinkStatus is 'ok' or 'failed' once the thinking stage has reported; null before that, or for turns stored before it was recorded.
-export const emptyBrain = () => ({ turn: null, phase: 'idle', heard: '', affect: null, causes: [], candidates: [], winners: [], reply: '', selfModel: null, thinkStatus: null, thinkFailure: null, turnStatus: null });
+export const emptyBrain = () => ({ turn: null, phase: 'idle', heard: '', affect: null, causes: [], candidates: [], winners: [], reply: '', selfModel: null, thinkStatus: null, thinkFailure: null, turnStatus: null, saveFailed: false, saveDetail: '' });
 
 export function applyStage(state, stage, data = {}) {
   const s = { ...state };
@@ -18,6 +18,7 @@ export function applyStage(state, stage, data = {}) {
     case 'workspace': s.phase = 'workspace'; s.winners = (data.winners || []).map(w => w.module); break;
     case 'speaking': s.phase = 'speaking'; s.reply = data.reply || ''; s.turnStatus = data.status ?? 'ok'; break;
     case 'selfmodel': s.selfModel = { note: data.note || '', before: data.before, after: data.after }; break;
+    case 'save_failed': s.saveFailed = true; s.saveDetail = data.detail || ''; break;
     case 'done': s.phase = 'done'; break;
     default: break;
   }

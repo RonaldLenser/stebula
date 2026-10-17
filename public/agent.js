@@ -1,35 +1,29 @@
-// Agent: who you are talking to, what it is doing, the conversation, the process map of one turn, and one inspector.
-// Everything shown comes from the turn stream or from the stored memory file. Selecting a message, a stage,
-// a line or a memory changes the one shared selection in store.js, so the three panels always show the same turn.
-import { $, $$, esc, fmt, pref, setPref, api, stream, config, tabKeys, when } from '/core.js';
-import { S, AGENTS, agentName, subscribe, notify, turns, latest, viewTurn, isHistory, selectTurn, selectNode, loadState, loadExample, switchAgent, refreshMem, syncRecorder } from '/store.js';
-import { processModel, activityLabel, whatChanged, agentMsg, userMsg, STEPS, STATUS_TEXT } from '/src/talk/process.js';
+// Agent: who you are talking to, what it is doing, the conversation, and a compact overview of the selected
+// interaction. Details open in a drawer. Everything shown comes from the turn stream or the stored memory file,
+// and one shared selection (store.js) keeps the conversation, overview and drawer on the same turn.
+import { $, $$, esc, pref, setPref, api, stream, config, when } from '/core.js';
+import { S, AGENTS, agentName, subscribe, notify, turns, latest, viewTurn, isHistory, selectTurn, openDetail, loadState, loadExample, switchAgent, refreshMem, showingLive } from '/store.js';
+import { activityLabel, agentMsg, userMsg } from '/src/talk/process.js';
+import { overviewModel } from '/src/talk/overview.js';
 import { applyStage, emptyBrain } from '/src/talk/brain.js';
-import { mapHtml, drawEdges, hookResize } from '/map.js';
-import { inspectorHtml, statusChip } from '/inspector.js';
+import { overviewHtml } from '/overview.js';
+import { currentModel, bindOpeners, initDrawer } from '/drawer.js';
 
 const memoryMode = m => m?.monologue?.context?.speak?.mode ?? 'on';
-const RECOVERY = { refusal: 'Reword the message and send it again. The provider declined this request.', truncation: 'The reply was cut off. Try a shorter message, or retry.', malformed: 'The model returned something unreadable twice. Retry.', schema: 'The model returned the wrong shape of answer twice. Retry.', empty: 'The model returned no text. Retry.', transport: 'The model service did not answer. Check your connection and retry.', timeout: 'The model took too long. Retry.' };
-const STAGE_NAME = { think: 'thinking', speak: 'reply', 'digest-read': 'reading', 'digest-think': 'thinking', reflect: 'reflection', audit: 'audit' };
-const model = () => processModel({ mem: S.mem, turn: viewTurn(), live: S.live, agent: S.agent });
+const RECOVERY = { save: 'Nothing from this turn was stored. Check that the data folder is writable, then retry.', refusal: 'Reword the message and send it again. The provider declined this request.', truncation: 'The reply was cut off. Try a shorter message, or retry.', malformed: 'The model returned something unreadable twice. Retry.', schema: 'The model returned the wrong shape of answer twice. Retry.', empty: 'The model returned no text. Retry.', transport: 'The model service did not answer. Check your connection and retry.', timeout: 'The model took too long. Retry.' };
+const STAGE_NAME = { think: 'proposal', speak: 'reply', save: 'saving', 'digest-read': 'reading', 'digest-think': 'thinking', reflect: 'reflection', audit: 'audit' };
 
-// ---------- summary: who, doing what, about what, latest ----------
+// ---------- summary: who and what it is doing ----------
 function renderSummary() {
   const ag = AGENTS[S.agent] ?? { name: `Agent ${S.agent}`, role: '', about: '' };
-  const m = S.mem, t = viewTurn(), n = turns().length;
+  const m = S.mem;
   $('#sumName').textContent = agentName(S.agent);
   $('#sumAbout').textContent = ag.about;
   $('#agentBadge').textContent = S.agent; $('#agentBadge').dataset.agent = S.agent;
   const label = activityLabel({ live: S.live, busy: typeof S.busy === 'string' ? S.busy : null, readonly: S.readonly, hasModel: !!config.value?.live });
   const working = !!S.live || !!S.busy;
   $('#sumStatus').innerHTML = `<span class="dot${working ? ' on' : ''}" aria-hidden="true"></span>${esc(label)}`;
-  const focusText = S.pending ?? (t != null ? userMsg(m, t)?.text : null);
-  $('#sumFocus').textContent = focusText ? `"${focusText.length > 90 ? `${focusText.slice(0, 90)}...` : focusText}"` : 'Nothing yet';
-  const last = latest();
-  const lm = last != null ? agentMsg(m, last) : null;
-  $('#sumLatest').textContent = lm ? `Turn ${last}, ${when(lm.at)}. ${whatChanged(m, last).text}` : 'No turns yet';
-  const ver = m ? `version ${m.version}, ${m.turns} turn${m.turns === 1 ? '' : 's'}, ${m.episodes.length} reading${m.episodes.length === 1 ? '' : 's'} stored` : '';
-  $('#sumMemory').textContent = ver || 'Loading';
+  $('#sumMemory').textContent = m ? `Version ${m.version}, ${m.turns} turn${m.turns === 1 ? '' : 's'}, ${m.episodes.length} reading${m.episodes.length === 1 ? '' : 's'} stored` : 'Loading';
   $('#agentPick').value = S.agent;
 }
 
@@ -37,7 +31,7 @@ function renderBanner() {
   const b = $('#banner'), t = viewTurn(), n = turns().length;
   const parts = []; let cls = '';
   if (S.example) { parts.push('<b>Scripted example.</b> Produced by a deterministic test stub, not a model. Read-only. ' + (config.value?.public ? '' : '<button class="btn small" data-act="leave-example">Back to my agent</button>')); cls = ' info'; }
-  if (isHistory()) { parts.push(`<b>Viewing history.</b> Turn ${t} of ${n}, recorded ${esc(when(agentMsg(S.mem, t)?.at))}. The conversation, map and inspector show the state recorded then, not the latest. <button class="btn small" data-act="latest">Back to latest</button>`); cls = ''; }
+  if (isHistory()) { parts.push(`<b>Viewing history.</b> Turn ${t} of ${n}, recorded ${esc(when(agentMsg(S.mem, t)?.at))}. The conversation, overview and details show the state recorded then, not the latest. <button class="btn small" data-act="latest">Back to latest</button>`); cls = ''; }
   if (!parts.length && config.value?.fake) { parts.push('<b>Scripted test model.</b> Answers are canned. This is for testing the interface.'); cls = ' info'; }
   const html = parts.join('<br>');
   b.hidden = !html; b.className = `banner${cls}`; b.innerHTML = html;
@@ -64,13 +58,10 @@ function msgHtml(m, mem) {
   const sel = viewTurn() === m.turn;
   if (m.role === 'user') return `<div class="msg user${sel ? ' sel' : ''}" role="button" tabindex="0" data-turn="${m.turn}" data-pick="noticed" aria-pressed="${sel}" aria-label="Your message, turn ${m.turn}. Press to see what it noticed."><div class="who">You, turn ${m.turn}</div><div class="text">${esc(m.text)}</div></div>`;
   if (m.kind === 'opening') return `<div class="msg agent opening" aria-label="Opening message after a reflection"><div class="who">${esc(agentName(mem.agent))}, after reviewing the record when you came back</div><div class="text">${esc(m.text)}</div></div>`;
-  const wc = whatChanged(mem, m.turn);
-  const flagged = m.flags?.filter(f => f.severity === 'warn' && f.check !== 'thinking-incomplete').slice(0, 2) || [];
-  return `<article class="msg agent${m.degraded ? ' degraded' : ''}" role="button" tabindex="0" aria-pressed="${sel}" data-turn="${m.turn}" data-pick="reply" aria-label="${esc(agentName(mem.agent))}, turn ${m.turn}. Press to see how this was made.">
-    <div class="who">${esc(agentName(mem.agent))}</div><div class="text">${esc(m.text)}</div>
-    <div class="changed${wc.did ? ' did' : ''}">${esc(wc.text)}</div>
-    <div class="badges">${m.degraded ? '<span class="chip st-failed">Incomplete: thinking step failed</span>' : ''}${memoryMode(m) === 'off' ? '<span class="chip">Memory was off</span>' : ''}${flagged.map(f => `<span class="chip warn" title="${esc(f.note)}">${esc(f.check)}</span>`).join('')}<span class="hint">${sel ? 'Showing how this was made' : 'See how this was made'}</span></div></article>`;
+  return `<article class="msg agent${m.degraded ? ' degraded' : ''}" role="button" tabindex="0" aria-pressed="${sel}" data-turn="${m.turn}" aria-label="${esc(agentName(mem.agent))}, turn ${m.turn}${m.degraded ? ', incomplete' : ''}. Press to show its overview.">
+    <div class="who">${esc(agentName(mem.agent))}${m.degraded ? ' <span class="chip st-partial">Incomplete</span>' : ''}${memoryMode(m) === 'off' ? ' <span class="chip">Memory off</span>' : ''}</div><div class="text">${esc(m.text)}</div></article>`;
 }
+
 function renderConversation() {
   const m = S.mem, parts = [];
   if (m) for (const msg of m.archive) parts.push(msgHtml(msg, m));
@@ -99,51 +90,27 @@ function renderComposer() {
   $('#agentPick').disabled = !!S.busy || !!config.value?.public;
   for (const id of ['#actReflect', '#actReset']) $(id).disabled = off || !!S.busy;
   $('#talkInput').placeholder = S.readonly ? 'Read-only example.' : !config.value?.live ? 'This copy has no model to talk to.' : `Message ${AGENTS[S.agent]?.name || 'the agent'}. Enter sends. Shift+Enter adds a line.`;
-  const eb = $('#errorBox'); eb.hidden = !S.error; eb.innerHTML = errorHtml(S.error);
+  const eb = $('#errorBox'); eb.hidden = !S.error || S.error.stage === 'save'; eb.innerHTML = errorHtml(S.error);
   $('#memoryOn').disabled = !!S.busy || S.readonly;
   $('#readPanel').hidden = !!S.readonly;
 }
 
-// ---------- map and inspector ----------
-let mapKey = '', ro = null;
-function renderMap() {
-  const mod = model(), root = $('#processMap');
-  const opts = { selected: S.node, step: S.step };
-  const html = mapHtml(mod, opts);
-  const key = html + JSON.stringify(S.node);
-  if (key !== mapKey) { mapKey = key; root.innerHTML = html; }
-  drawEdges(root, mod, opts);
-  if (!ro) ro = hookResize(root, () => drawEdges($('#processMap'), model(), { selected: S.node, step: S.step }));
-  else { ro.disconnect(); const w = $('.mapwrap', root); if (w) ro.observe(w); }
-  // replay controls
-  const t = viewTurn(), canStep = !S.live && t != null;
-  $('#stepStart').disabled = !canStep; $('#stepPrev').disabled = !canStep || S.step == null || S.step === 0; $('#stepNext').disabled = !canStep || S.step === STEPS.length - 1; $('#stepAll').disabled = !canStep || S.step == null;
-  $('#stepStart').hidden = S.step != null; $('#stepPrev').hidden = $('#stepNext').hidden = $('#stepAll').hidden = S.step == null;
-  $('#stepInfo').textContent = S.step == null ? '' : `Replay, stage ${S.step + 1} of ${STEPS.length}: ${STEPS[S.step].label}. This steps through the recorded stages. It is not live activity.`;
-  const head = $('#mapStatus');
-  head.innerHTML = `${statusChip(mod.overall.state === 'complete' ? 'done' : mod.overall.state === 'incomplete' ? 'partial' : mod.overall.state === 'processing' ? 'active' : 'missing')} <span>${esc(mod.overall.text)}</span>`;
-  $('#mapTurn').textContent = S.live ? `Turn ${S.live.turn ?? ''} (in progress)` : t != null ? `Turn ${t}${isHistory() ? ' (history)' : ' (latest)'}` : 'No turn yet';
-}
-let inspKey = '';
-function renderInspector() {
-  const mod = model(), t = viewTurn(), m = S.mem;
-  const head = $('#inspHead');
-  head.className = `insp-head${isHistory() ? ' history' : ''}`;
-  head.innerHTML = S.live ? '<div class="state"><h2>Inspector</h2><span class="chip accent">Live turn in progress</span></div>'
-    : t != null ? `<div class="state"><h2>Inspector</h2>${isHistory() ? '<span class="chip warn">History: turn ' + t + '</span>' : '<span class="chip ok">Latest: turn ' + t + '</span>'}<span class="note">${esc(when(agentMsg(m, t)?.at))}</span></div>` : '<div class="state"><h2>Inspector</h2></div>';
-  const body = $('#panel-inspector');
-  const html = inspectorHtml(mod, S.node, { mem: S.mem, example: S.example });
-  const key = html;
-  if (key === inspKey) return;
-  inspKey = key; body.innerHTML = html;
+// ---------- overview of the selected interaction ----------
+let ovKey = '';
+function renderOverview() {
+  const model = currentModel(), ov = overviewModel(model), box = $('#overview');
+  const t = viewTurn();
+  const label = showingLive() ? (S.failedTurn ? 'This turn (not saved)' : 'This turn, in progress') : t != null ? `Turn ${t}${isHistory() ? ', viewing history' : ', latest'}` : 'No turn selected';
+  $('#ovTurn').textContent = label; $('#ovTurn').className = isHistory() ? 'ovturn history' : 'ovturn';
+  const items = model.nodes.memories.items;
+  const html = overviewHtml(ov, { memoryItems: items, retry: !!S.failedTurn && !!S.lastSent });
+  if (html !== ovKey) { ovKey = html; $('#ovBody').innerHTML = html; }
+  $('#viewDiagram').disabled = ov.empty && !showingLive();
 }
 let atBottom = true;
 function bottom() { const el = $('#chatLog'); if (atBottom && !isHistory()) el.scrollTop = el.scrollHeight; }
 export function render() {
-  renderSummary(); renderBanner(); renderConversation(); renderTurnBar(); renderComposer(); renderMap(); renderInspector(); bottom();
-  const open = document.body.classList.contains('inspect-open');
-  $('#inspectBtn').textContent = open ? 'Close details' : 'Details';
-  $('#inspectBtn').setAttribute('aria-expanded', String(open));
+  renderSummary(); renderBanner(); renderConversation(); renderTurnBar(); renderComposer(); renderOverview(); bottom();
 }
 
 // ---------- sending ----------
@@ -151,7 +118,7 @@ async function send(textOverride) {
   const input = $('#talkInput');
   const text = (textOverride ?? input.value).trim();
   if (!text || S.busy || S.readonly || !config.value?.live) return;
-  S.pending = text; S.lastSent = text; input.value = ''; S.error = null; S.sel = null; S.step = null;
+  S.pending = text; S.lastSent = text; input.value = ''; S.error = null; S.sel = null; S.step = null; S.failedTurn = null;
   S.live = emptyBrain();
   const ac = new AbortController(); S.job = ac; S.busy = 'Sending.';
   const inputKind = S.nextInput || 'typed'; S.nextInput = 'typed';
@@ -168,9 +135,10 @@ async function send(textOverride) {
   } catch (e) {
     if (e.name === 'AbortError') S.error = { kind: 'cancelled', error: 'Stopped. No further model calls were made and nothing was saved for this turn.', retryText: text };
     else S.error = { ...(e.info || {}), error: e.message, kind: e.info?.kind || 'request', retryText: text };
+    if (e.info?.stage === 'save') S.failedTurn = S.live; // keep what was written visible, labelled as not saved
     input.value = text;
     try { await refreshMem(); } catch { /* keep what we have */ }
-  } finally { S.busy = null; S.job = null; S.pending = null; S.live = null; S.node = null; render(); input.focus(); }
+  } finally { S.busy = null; S.job = null; S.pending = null; S.live = null; render(); input.focus(); }
 }
 const stop = () => S.job?.abort();
 
@@ -250,13 +218,6 @@ function listen() {
 }
 function micState() { $('#mic').setAttribute('aria-pressed', String(V.listening)); $('#mic').textContent = V.listening ? 'Listening' : 'Speak'; if (!V.listening && $('#voiceNote').textContent.startsWith('Listening')) $('#voiceNote').textContent = ''; }
 
-// ---------- selection helpers ----------
-const mobile = () => matchMedia('(max-width: 960px)').matches;
-function pickNode(id) { selectNode({ kind: 'node', id }); if (mobile()) document.body.classList.add('inspect-open'); render(); }
-function pickEdge(id) { selectNode({ kind: 'edge', id }); if (mobile()) document.body.classList.add('inspect-open'); render(); }
-function pickMemory(id) { selectNode({ kind: 'memory', id }); if (mobile()) document.body.classList.add('inspect-open'); render(); }
-function pickProposal(id) { selectNode({ kind: 'proposal', id }); if (mobile()) document.body.classList.add('inspect-open'); render(); }
-function setStep(i) { S.step = i; if (i != null) { const id = STEPS[i].id; S.node = { kind: 'node', id }; } notify(); }
 function pane(p) { document.body.dataset.pane = p; for (const b of $$('#paneSeg [data-pane]')) b.setAttribute('aria-pressed', String(b.dataset.pane === p)); }
 
 // ---------- init ----------
@@ -273,27 +234,15 @@ export async function initAgent() {
   $('#chatLog').addEventListener('scroll', () => { const el = $('#chatLog'); atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80; });
   $('#talkStop').onclick = stop;
   $('#agentPick').onchange = e => switchAgent(e.target.value);
-  $('#inspectBtn').onclick = () => { document.body.classList.toggle('inspect-open'); render(); };
-  $('#inspClose').onclick = () => { document.body.classList.remove('inspect-open'); render(); $('#inspectBtn').focus(); };
   $('#turnScrub').oninput = e => selectTurn(turns()[Number(e.target.value) - 1]);
   $('#turnPrev').onclick = () => { const t = turns(), i = t.indexOf(viewTurn()); if (i > 0) selectTurn(t[i - 1]); };
   $('#turnNext').onclick = () => { const t = turns(), i = t.indexOf(viewTurn()); if (i < t.length - 1) selectTurn(t[i + 1]); };
   $('#turnLatest').onclick = () => selectTurn(latest());
-  $('#stepStart').onclick = () => setStep(0);
-  $('#stepPrev').onclick = () => setStep(Math.max(0, (S.step ?? 0) - 1));
-  $('#stepNext').onclick = () => setStep(Math.min(STEPS.length - 1, (S.step ?? -1) + 1));
-  $('#stepAll').onclick = () => { S.step = null; notify(); };
   for (const b of $$('#paneSeg [data-pane]')) b.onclick = () => pane(b.dataset.pane);
   pane('convo');
 
-  // map and inspector clicks, by delegation (both are regenerated)
-  $('#processMap').addEventListener('click', e => {
-    const p = e.target.closest('[data-proposal]'), mm = e.target.closest('[data-memory]'), n = e.target.closest('[data-pick-node]'), ed = e.target.closest('[data-edge]');
-    if (p) pickProposal(p.dataset.proposal); else if (mm) pickMemory(mm.dataset.memory); else if (n) pickNode(n.dataset.pickNode); else if (ed) pickEdge(ed.dataset.edge);
-  });
-  $('#processMap').addEventListener('keydown', e => { const ed = e.target.closest?.('[data-edge]'); if (ed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pickEdge(ed.dataset.edge); } });
-  $('#panel-inspector').addEventListener('click', e => { const n = e.target.closest('[data-pick-node]'), mm = e.target.closest('[data-pick-memory]'); if (n) pickNode(n.dataset.pickNode); else if (mm) pickMemory(mm.dataset.pickMemory); });
-  $('#clearSel').onclick = () => { S.node = null; notify(); };
+  initDrawer(); bindOpeners($('#overview'));
+  $('#viewDiagram').onclick = () => openDetail({ kind: 'diagram', id: 'all' });
 
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-act]')?.dataset.act;
@@ -312,7 +261,6 @@ export async function initAgent() {
   };
   $('#chatLog').addEventListener('click', pick);
   $('#chatLog').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.msg[data-turn]')) { e.preventDefault(); pick(e); } });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('inspect-open')) { document.body.classList.remove('inspect-open'); render(); $('#inspectBtn').focus(); } });
 
   $('#actReflect').onclick = () => { $('#moreMenu').open = false; act(`${AGENTS[S.agent].name} is reviewing the record.`, async signal => { S.mem = (await api('/api/talk/reflect', { agent: S.agent, trigger: 'manual', memory: $('#memoryOn').checked ? 'on' : 'off' }, { signal })).mem; speakLatest(); }); };
   $('#actExport').onclick = () => { $('#moreMenu').open = false; if (!S.mem) return; const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(S.mem, null, 1)], { type: 'application/json' })), download: `stebula-memory-${S.agent}-${Date.now()}.json` }); a.click(); URL.revokeObjectURL(a.href); };

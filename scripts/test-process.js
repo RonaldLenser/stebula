@@ -42,10 +42,10 @@ let n = 0; const ok = m => console.log(`ok ${++n}. ${m}`);
   assert(t, 'the fixture has a degraded turn');
   const m = processModel({ mem: fixture, turn: t });
   assert.equal(m.nodes.proposals.status, 'failed'); assert.equal(m.nodes.selected.status, 'skipped'); assert.equal(m.nodes.reply.status, 'partial'); assert.equal(m.nodes.changes.status, 'skipped');
-  assert.equal(m.overall.state, 'incomplete'); assert.match(m.overall.text, /thinking step failed/);
+  assert.equal(m.overall.state, 'incomplete'); assert.match(m.overall.text, /proposal step failed/);
   assert.equal(m.nodes.proposals.candidates.length, 0); assert.equal(m.nodes.selected.winners.length, 0);
   assert.equal(m.edges.find(e => e.id === 'selected-reply').given, false, 'no selection reached the reply');
-  ok('a failed thinking step followed by a reply is shown as failed, skipped, and "completed, incomplete process"');
+  ok('a failed proposal step followed by a reply is shown as failed, skipped, and "completed, incomplete process"');
 }
 
 // 4. Missing records are "nothing recorded", never invented content. A turn from before recording has no values.

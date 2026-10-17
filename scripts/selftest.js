@@ -64,7 +64,7 @@ const stub = async ({ system, messages, user }) => {
   if (user?.includes('Predict its answer')) return JSON.stringify({ predicted: 'agree', confidence: 0.7, reason: 'consistent with my beliefs' });
   if (user?.startsWith('Do you agree')) return JSON.stringify({ stance: 'disagree', reason: 'on reflection no' });
   if (user?.includes('Time has passed')) return JSON.stringify({ self_model: { beliefs: ['My memory is a file', 'I mispredict myself'], uncertainties: ['Whether I experience anything'], openQuestions: [] }, changed_mind: 'I know myself less well than I said', why: 'failed self-prediction', opening_message: 'I got my own answer wrong. Why do you think that happened?' });
-  if (system.includes('private thinking stage')) return JSON.stringify({ thoughts: th });
+  if (system.includes('This is the proposal stage')) return JSON.stringify({ thoughts: th });
   if (messages?.at(-1).content.includes('Again?')) return 'not json at all';
   speakN++;
   assert.equal(th.filter(t => system.includes(t.text)).length, 2, 'speaker sees exactly the 2 workspace winners');
@@ -194,7 +194,7 @@ import { freshTalkMemory } from '../src/talk/session.js';
   const dstub = async ({ system, messages, user }) => {
     if (user?.includes('Merge these memory summaries')) return 'Folded summary of earlier reading.';
     if (user?.includes('Answer each question')) return JSON.stringify({ answers: ['I like questions.', 'I push back.', 'Whether I experience anything.', 'To understand.', 'By testing.'], updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'I like questions' }, { kind: 'trait', name: 'made up', direction: 'supports', evidence_quote: 'never said' }] });
-    if (system.includes('private thinking stage')) return JSON.stringify({ thoughts: th });
+    if (system.includes('This is the proposal stage')) return JSON.stringify({ thoughts: th });
     if (system.includes('is reading you a passage')) {
       pass++;
       return JSON.stringify({ noticed: `Noticed thing ${pass}`, connects: pass > 1 ? ['m1', 'm999'] : [], question: 'Why the stone?', updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'keeps asking questions about the stone' }, { kind: 'trait', name: 'invented', direction: 'supports', evidence_quote: 'words the passage never contains' }] });
@@ -259,7 +259,7 @@ const research = th2 => async ({ system, messages, user, meta }) => {
   if (user?.includes('Time has passed')) return JSON.stringify({ self_model: { beliefs: ['I changed'], uncertainties: [], openQuestions: [] }, changed_mind: 'x', why: 'y', opening_message: 'Hello again.' });
   if (user?.includes('Answer each question')) return JSON.stringify({ answers: ['I like questions.', 'b', 'c', 'd', 'e'], updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'I like questions' }] });
   if (user?.includes('testable hypotheses')) return JSON.stringify({ hypotheses: [] });
-  if (system.includes('private thinking stage')) return JSON.stringify({ thoughts: th2 });
+  if (system.includes('This is the proposal stage')) return JSON.stringify({ thoughts: th2 });
   if (system.includes('is reading you a passage')) return JSON.stringify({ noticed: 'Noticed.', connects: [], question: 'Why?', updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'asking' }] });
   return JSON.stringify({ reply: 'What do you mean? I think maybe so.', self_model: { beliefs: [`b${Math.random()}`], uncertainties: [], openQuestions: [] }, change_note: 'changed', claims: [{ text: 'I wonder', kind: 'experiential' }], candidate_updates: [{ kind: 'trait', name: 'curious', direction: 'supports', evidence_quote: 'What do you mean' }] });
 };

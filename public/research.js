@@ -1,8 +1,8 @@
 // Research: findings with locked predictions and pilot labels, methods and sources, limitations, and the
 // architectural indicators. Nothing here is a score of consciousness, and no label is stronger than the data.
-import { $, $$, esc, fmt, isNum, when, api, markdown, tabKeys } from '/core.js';
+import { $, $$, esc, fmt, isNum, when, api, markdown } from '/core.js';
 import { INDICATORS, SCORECARD_CAVEATS } from '/src/talk/indicators.js';
-import { syncRecorder } from '/observe.js';
+import { syncRecorder } from '/store.js';
 
 const F = { data: null, busy: '', msg: '', docs: {} };
 const val = v => (isNum(v) ? Number(v).toFixed(3).replace(/\.?0+$/, '') || '0' : '<span class="nodata">No data</span>');
@@ -97,17 +97,14 @@ const METHODS = `<h2>Methods</h2>
 <h3>Human comparison</h3><div id="humanDoc"></div>
 <h3>Data</h3><p>Every model call, with its full prompt, raw output, stop reason, usage and the memory ids supplied, is appended to data/records. The CSV downloads under Findings are built from it. <a href="/docs/DATA_DICTIONARY.md" target="_blank" rel="noopener">Data dictionary</a>.</p>`;
 
+// Called by the Lab when one of the reading panes is shown.
+export function onResearchPane(id) {
+  if (id === 'findings') load();
+  if (id === 'methods') { $('#methodsBody').innerHTML = METHODS; doc('/docs/HUMAN_COMPARISON.md', $('#humanDoc'), '<p class="nodata">The human comparison document is not available in this copy.</p>'); }
+  if (id === 'limits') doc('/docs/LIMITATIONS.md', $('#limitsBody'), '<p class="nodata">The limitations document is not available in this copy.</p>');
+  if (id === 'score') scorecard();
+}
 export function initResearch() {
-  const list = $('#researchView .subnav'); tabKeys(list);
-  const show = id => {
-    for (const b of $$('[role=tab]', list)) b.setAttribute('aria-selected', String(b.dataset.rsub === id));
-    for (const p of $$('[id^="rsub-"]')) p.hidden = p.id !== `rsub-${id}`;
-    if (id === 'findings') load();
-    if (id === 'methods') { $('#methodsBody').innerHTML = METHODS; doc('/docs/HUMAN_COMPARISON.md', $('#humanDoc'), '<p class="nodata">The human comparison document is not available in this copy.</p>'); }
-    if (id === 'limits') doc('/docs/LIMITATIONS.md', $('#limitsBody'), '<p class="nodata">The limitations document is not available in this copy.</p>');
-    if (id === 'score') scorecard();
-  };
-  for (const b of $$('[role=tab]', list)) b.onclick = () => show(b.dataset.rsub);
   $('#fGenerate').onclick = () => act('Asking the model for up to 3 hypotheses from the stats.', async () => { const r = await api('/api/findings/generate', {}); F.msg = `${r.created} proposed.${r.rejected.length ? ` ${r.rejected.length} rejected: ${r.rejected.map(x => x.why).join('; ')}` : ''}`; });
   $('#fExport').onclick = async () => {
     try {
@@ -126,6 +123,4 @@ export function initResearch() {
     } catch (e) { F.msg = e.message; }
     render();
   };
-  return show;
 }
-export const researchActivated = show => show?.($$('#researchView .subnav [aria-selected=true]')[0]?.dataset.rsub || 'findings');

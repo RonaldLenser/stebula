@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stebula: watch how an AI's memory shapes its answers</title>
-<meta name="description" content="A research instrument for how an AI agent's stored memory, self-description and decisions interact. Every view comes from recorded state.">
+<title>Stebula: an AI agent and its recorded process</title>
+<meta name="description" content="A window into an AI agent: what it noticed, which memories it was given, what it proposed, what it said and what changed afterward. Every view comes from recorded state.">
 <script>
 // Set the colour theme before first paint so there is no flash. "auto" follows the system.
 (function () {
@@ -20,14 +20,11 @@
 <div id="updateBar" class="updatebar" hidden role="status">A new version is running. <button id="reloadNow" class="btn small">Reload to use it</button></div>
 
 <header class="top">
-  <div class="brand">
-    <h1>Stebula</h1>
-    <p class="tag">Watch how an AI's memory shapes what it says and does.</p>
-  </div>
+  <div class="brand"><h1>Stebula</h1></div>
   <nav class="views" aria-label="Primary">
-    <button id="viewObserve" class="tab" aria-pressed="true">Observe</button>
-    <button id="viewExperiments" class="tab" aria-pressed="false">Experiments</button>
-    <button id="viewResearch" class="tab" aria-pressed="false">Research</button>
+    <button id="viewAgent" class="tab" aria-pressed="true">Agent</button>
+    <button id="viewHistory" class="tab" aria-pressed="false">History</button>
+    <button id="viewLab" class="tab" aria-pressed="false">Lab</button>
   </nav>
   <div class="status-area">
     <span id="modelChip" class="chip" title="Which model answers, if any"></span>
@@ -37,89 +34,163 @@
 </header>
 
 <main id="main" tabindex="-1">
-<!-- ===================== OBSERVE ===================== -->
-<section id="observeView" class="observe" aria-label="Observe">
-  <div class="convo">
-    <div class="convo-bar">
-      <div class="field inline"><label for="agentPick">Agent</label>
-        <select id="agentPick"><option value="A">A: empiricist</option><option value="B">B: analogist</option></select></div>
-      <label class="check" title="Off: this turn runs without any stored memory, so you can see what memory changes."><input type="checkbox" id="memoryOn" checked> Use stored memory</label>
-      <details class="menu" id="moreMenu"><summary class="btn ghost small">More</summary>
-        <div class="menu-list" role="group" aria-label="More actions">
-          <button id="actReflect" class="btn ghost small">Ask it to reflect on the record</button>
-          <button id="actAudit" class="btn ghost small">Audit recent turns</button>
-          <button id="actExport" class="btn ghost small">Download memory file</button>
-          <button id="actReset" class="btn ghost small danger">Reset memory (keeps a backup)</button>
-        </div>
-      </details>
-      <button id="inspectBtn" class="btn small inspect-toggle" aria-expanded="false" aria-controls="inspector">Inspect</button>
+<!-- ===================== AGENT ===================== -->
+<section id="agentView" class="agentview" aria-label="Agent">
+  <div class="summary">
+    <div class="sum-who">
+      <span id="agentBadge" class="badge" data-agent="A" aria-hidden="true">A</span>
+      <div class="sum-id"><h2 id="sumName">Agent A (empiricist)</h2><p id="sumAbout" class="note"></p>
+        <div class="field inline switch"><label for="agentPick">Switch agent</label>
+          <select id="agentPick"><option value="A">Agent A (empiricist)</option><option value="B">Agent B (analogist)</option></select></div></div>
     </div>
-    <div id="banner" class="banner" hidden></div>
-    <ol id="stages" class="stages" aria-label="Stages of this turn"></ol>
-    <div id="replayBar" class="replaybar" hidden>
-      <label for="turnScrub">Turn</label>
-      <input id="turnScrub" type="range" min="1" max="1" value="1" disabled>
-      <button id="turnPrev" class="btn ghost small" aria-label="Previous turn">Previous</button>
-      <button id="turnNext" class="btn ghost small" aria-label="Next turn">Next</button>
-      <button id="turnLatest" class="btn small">Back to latest</button>
-    </div>
-    <div id="chatLog" class="chatlog" aria-live="polite"></div>
-    <div id="errorBox" class="alert" role="alert" hidden></div>
-    <form id="composer" class="composer" autocomplete="off">
-      <div class="field grow"><label for="talkInput">Your message</label>
-        <textarea id="talkInput" rows="2" placeholder="Enter sends. Shift+Enter adds a line."></textarea></div>
-      <div class="composer-btns">
-        <button id="talkSend" class="btn primary" type="submit">Send</button>
-        <button id="talkStop" class="btn danger" type="button" hidden>Stop</button>
-        <button id="mic" class="btn" type="button" aria-pressed="false" title="Speak, then pause. It sends when you stop talking.">Speak</button>
-      </div>
-    </form>
-    <details class="voice"><summary>Voice options</summary>
-      <label class="check"><input type="checkbox" id="readAloud"> Read replies aloud</label>
-      <label class="check"><input type="checkbox" id="handsFree"> Hands-free: listen again after it answers</label>
-      <div class="field inline"><label for="voicePick">Voice</label><select id="voicePick"></select></div>
-      <span id="voiceNote" class="note"></span>
-    </details>
+    <dl class="facts4">
+      <div><dt>Doing now</dt><dd id="sumStatus"></dd></div>
+      <div><dt>Responding to</dt><dd id="sumFocus"></dd></div>
+      <div><dt>Latest</dt><dd id="sumLatest"></dd></div>
+      <div><dt>Memory</dt><dd><span id="sumMemory"></span>
+        <label class="check" title="Off: this turn runs without any stored memory, so you can see what memory changes."><input type="checkbox" id="memoryOn" checked> Use stored memory</label></dd></div>
+    </dl>
+  </div>
+  <div id="banner" class="banner" hidden></div>
+  <div class="paneseg" id="paneSeg" role="group" aria-label="Show">
+    <button class="seg-btn" data-pane="convo" aria-pressed="true">Conversation</button>
+    <button class="seg-btn" data-pane="map" aria-pressed="false">How it was made</button>
+    <button id="inspectBtn" class="seg-btn" aria-expanded="false" aria-controls="inspector">Details</button>
   </div>
 
-  <aside id="inspector" class="inspector" aria-label="Inspector">
-    <div id="inspHead" class="insp-head"></div>
-    <div class="tablist" role="tablist" aria-label="Inspector sections">
-      <button role="tab" id="tab-process" aria-controls="panel-inspector" aria-selected="true" data-tab="process">Process</button>
-      <button role="tab" id="tab-changes" aria-controls="panel-inspector" aria-selected="false" data-tab="changes">Changes</button>
-      <button role="tab" id="tab-memory" aria-controls="panel-inspector" aria-selected="false" data-tab="memory">Memory</button>
-      <button role="tab" id="tab-checks" aria-controls="panel-inspector" aria-selected="false" data-tab="checks">Checks</button>
-      <button role="tab" id="tab-raw" aria-controls="panel-inspector" aria-selected="false" data-tab="raw">Raw</button>
+  <div class="agent-grid">
+    <div class="convo" id="convoPane">
+      <div id="replayBar" class="replaybar" hidden>
+        <span id="turnPos" class="note"></span>
+        <label for="turnScrub" class="sr-only">Turn</label>
+        <input id="turnScrub" type="range" min="1" max="1" value="1" disabled>
+        <button id="turnPrev" class="btn ghost small" aria-label="Previous turn">Previous</button>
+        <button id="turnNext" class="btn ghost small" aria-label="Next turn">Next</button>
+        <button id="turnLatest" class="btn small">Back to latest</button>
+      </div>
+      <div id="chatLog" class="chatlog" aria-live="polite"></div>
+      <div id="errorBox" class="alert" role="alert" hidden></div>
+      <form id="composer" class="composer" autocomplete="off">
+        <div class="field grow"><label for="talkInput">Your message</label>
+          <textarea id="talkInput" rows="2" placeholder="Enter sends. Shift+Enter adds a line."></textarea></div>
+        <div class="composer-btns">
+          <button id="talkSend" class="btn primary" type="submit">Send</button>
+          <button id="talkStop" class="btn danger" type="button" hidden>Stop</button>
+          <button id="mic" class="btn" type="button" aria-pressed="false" title="Speak, then pause. It sends when you stop talking.">Speak</button>
+        </div>
+      </form>
+      <div class="under">
+        <details class="voice"><summary>Voice options</summary>
+          <label class="check"><input type="checkbox" id="readAloud"> Read replies aloud</label>
+          <label class="check"><input type="checkbox" id="handsFree"> Hands-free: listen again after it answers</label>
+          <div class="field inline"><label for="voicePick">Voice</label><select id="voicePick"></select></div>
+          <span id="voiceNote" class="note"></span>
+        </details>
+        <details class="voice" id="readPanel"><summary>Read something to this agent</summary>
+          <p class="note">It reads in passages of about 200 words. Each passage becomes a stored memory and may add evidence to its personality record. If a passage fails, nothing for it is saved and you can resume from it.</p>
+          <div class="field"><label for="dTitle">Title</label><input id="dTitle" type="text" placeholder="What you are reading"></div>
+          <div class="field"><label for="dSource">Source</label><input id="dSource" type="text" placeholder="Author, link, or where it came from"></div>
+          <div class="field"><label for="dText">Text</label><textarea id="dText" rows="4" placeholder="Paste text, speak it, or load a .txt file."></textarea></div>
+          <div class="controls"><button id="dMic" class="btn small" aria-pressed="false">Speak the text</button>
+            <div class="field"><label for="dFile">.txt file</label><input id="dFile" type="file" accept=".txt,text/plain"></div>
+            <button id="dRead" class="btn primary small">Read it</button><button id="dStop" class="btn danger small" hidden>Stop</button></div>
+          <p id="dStatus" class="note" role="status"></p>
+        </details>
+        <details class="menu" id="moreMenu"><summary class="btn ghost small">More</summary>
+          <div class="menu-list" role="group" aria-label="More actions">
+            <button id="actReflect" class="btn ghost small">Ask it to reflect on its record</button>
+            <button id="actExport" class="btn ghost small">Download memory file</button>
+            <button id="actReset" class="btn ghost small danger">Reset memory (keeps a backup)</button>
+          </div>
+        </details>
+      </div>
     </div>
-    <div id="panel-inspector" class="insp-body" role="tabpanel" tabindex="0" aria-live="polite"></div>
-  </aside>
+
+    <section class="mapcol" id="mapPane" aria-label="How this answer was made">
+      <div class="map-head">
+        <div><h2>How this answer was made</h2><p class="note"><span id="mapTurn"></span>. <span id="mapStatus"></span></p></div>
+        <div class="steps" role="group" aria-label="Step through the recorded stages">
+          <button id="stepStart" class="btn small">Step through</button>
+          <button id="stepPrev" class="btn small" hidden>Previous stage</button>
+          <button id="stepNext" class="btn small" hidden>Next stage</button>
+          <button id="stepAll" class="btn ghost small" hidden>Show all</button>
+        </div>
+      </div>
+      <p id="stepInfo" class="stepinfo" role="status"></p>
+      <div id="processMap"></div>
+      <p class="note mapnote">This is the software around the model: what it was given, what it proposed, what code selected and what was saved. It does not show what happens inside the model.</p>
+    </section>
+
+    <aside id="inspector" class="inspector" aria-label="Inspector">
+      <div class="insp-bar"><div id="inspHead" class="insp-head"></div>
+        <button id="clearSel" class="btn ghost small" title="Back to the turn overview">Overview</button>
+        <button id="inspClose" class="btn ghost small insp-close">Close</button></div>
+      <div id="panel-inspector" class="insp-body" tabindex="0" aria-live="polite"></div>
+    </aside>
+  </div>
 </section>
 
-<!-- ===================== EXPERIMENTS ===================== -->
-<section id="experimentsView" class="page" hidden aria-label="Experiments">
-  <div class="subnav tablist" role="tablist" aria-label="Experiments">
-    <button role="tab" aria-selected="true" data-sub="lesson">Stored lesson</button>
-    <button role="tab" aria-selected="false" data-sub="isolation">Isolation</button>
-    <button role="tab" aria-selected="false" data-sub="compare">Compare agents</button>
-    <button role="tab" aria-selected="false" data-sub="rules">Two-agent rule runs</button>
+<!-- ===================== HISTORY ===================== -->
+<section id="historyView" class="historyview" hidden aria-label="History">
+  <div class="hcol-list"><div class="sticky">
+    <h2>History</h2>
+    <p class="note">Everything recorded for this agent, newest first. Pick a moment to see the state recorded then.</p>
+    <div id="hFilters" class="filters" role="group" aria-label="Filter"></div>
+    <ol id="hList" class="moments"></ol>
+  </div></div>
+  <div class="hcol-main">
+    <div id="hDetail"></div>
+    <section id="hMapPane"><h3>How that answer was made</h3><p class="note" id="hMapNote"></p><div id="hMapBox"></div></section>
+    <div id="hState"></div>
+    <details class="growth"><summary>Personality evidence over time (an evaluation record, not shown to the agent)</summary>
+      <p class="note">What grows is the agent's memory file. The model underneath does not change. Traits are evidence-scored patterns, not proof of a personality.</p>
+      <svg id="growthSvg" role="img" aria-label="Network of sources, evidence events, and the traits, motives and beliefs they built"></svg>
+      <div class="scrub"><label for="growthSlider">Replay formation</label><input id="growthSlider" type="range" min="0" max="0" value="0" disabled><span id="growthStep"></span></div>
+      <div id="traitList"></div><div id="provenance"></div></details>
+  </div>
+  <aside id="hInsp" class="hcol-insp" aria-label="Inspector"><div class="sticky"><h3>Inspector</h3><div id="hInspector" class="insp-body"></div></div></aside>
+</section>
+
+<!-- ===================== LAB ===================== -->
+<section id="labView" class="page" hidden aria-label="Lab">
+  <h2>Lab</h2>
+  <p class="lede">Controlled tests of how an agent's memory and input affect what it does. Each test says which agent answers, who or what judges the answer, and what it can and cannot tell us. Technical names are kept in the hover text of each setting.</p>
+  <p class="roles" id="labRoles"><span class="chip accent">Agent under test</span> answers. <span class="chip">Comparison agent</span> is a copy with nothing stored. <span class="chip ok">Evaluator</span> is code, unless a test says a second model call.</p>
+  <div class="tabgroups">
+    <div class="tabgroup"><span class="gl" id="glRun">Run a test</span>
+      <div class="subnav tablist" role="tablist" aria-labelledby="glRun">
+        <button role="tab" aria-selected="true" data-lab="lesson">Stored lesson</button>
+        <button role="tab" aria-selected="false" data-lab="isolation">What agents receive</button>
+        <button role="tab" aria-selected="false" data-lab="compare">Compare agents</button>
+        <button role="tab" aria-selected="false" data-lab="rules">Hidden-rule runs</button>
+        <button role="tab" aria-selected="false" data-lab="checks">Self-checks</button>
+      </div></div>
+    <div class="tabgroup"><span class="gl" id="glRead">Read the results</span>
+      <div class="subnav tablist" role="tablist" aria-labelledby="glRead">
+        <button role="tab" aria-selected="false" data-lab="findings">Findings</button>
+        <button role="tab" aria-selected="false" data-lab="methods">Methods and sources</button>
+        <button role="tab" aria-selected="false" data-lab="limits">Limits</button>
+        <button role="tab" aria-selected="false" data-lab="score">Indicators</button>
+      </div></div>
   </div>
 
-  <div id="sub-lesson" class="subpane">
+  <div id="pane-lesson" class="subpane">
     <h2>Does a stored lesson change the agent's next decision on a new problem?</h2>
-    <p class="lede">Each trial starts from a fresh agent with the same instructions. Only one thing differs: the single lesson in its stored memory. The tasks are the same for every condition, the prediction is recorded before the outcome, and the right answer is held back until scoring.</p>
+    <p class="lede">Each attempt starts from a fresh agent with the same instructions. Only the one saved lesson differs. The tasks are the same for every setup, the prediction is recorded before the outcome, and the right answer is held back until scoring.</p>
+    <div id="how-lesson"></div>
     <div id="lessonDesign"></div>
     <form id="lessonForm" class="runform" autocomplete="off">
-      <div class="field"><label for="lMode">Who answers</label>
-        <select id="lMode"><option value="scripted">Scripted double (no model; tests the pipeline only)</option><option value="live">Live model (costs credit)</option></select></div>
-      <div class="field"><label for="lTasks">Tasks</label><input id="lTasks" type="number" value="8" min="1" max="60"></div>
-      <div class="field"><label for="lSeed">Seed</label><input id="lSeed" type="number" value="1" min="1"></div>
-      <fieldset class="conds"><legend>Conditions</legend>
-        <label class="check"><input type="checkbox" name="lc" value="relevant" checked> relevant lesson</label>
-        <label class="check"><input type="checkbox" name="lc" value="none" checked> no lesson</label>
-        <label class="check"><input type="checkbox" name="lc" value="irrelevant" checked> irrelevant lesson</label>
-        <label class="check"><input type="checkbox" name="lc" value="shuffled"> shuffled lesson</label>
+      <div class="field"><label for="lMode">Practice or real run</label>
+        <select id="lMode"><option value="scripted">Practice: a script answers, no model, free (scripted double)</option><option value="live">Real run: the live model answers, costs credit</option></select></div>
+      <div class="field"><label for="lTasks" title="Technical name: tasks. Each setup attempts every task once.">Different tasks to try</label><input id="lTasks" type="number" value="8" min="1" max="60"></div>
+      <div class="field"><label for="lSeed" title="Technical name: seed. The same number gives the same tasks and shuffles, so a run can be repeated exactly.">Repeatable setup (seed)</label><input id="lSeed" type="number" value="1" min="1"></div>
+      <fieldset class="conds"><legend title="Technical name: conditions">What changes in this test?</legend>
+        <label class="check"><input type="checkbox" name="lc" value="relevant" checked> A useful lesson</label>
+        <label class="check"><input type="checkbox" name="lc" value="none" checked> No lesson (comparison)</label>
+        <label class="check"><input type="checkbox" name="lc" value="irrelevant" checked> An unrelated lesson of similar length</label>
+        <label class="check"><input type="checkbox" name="lc" value="shuffled"> The useful lesson with its words shuffled</label>
       </fieldset>
-      <div class="field" id="lBudgetField"><label for="lBudget">Call budget (live only)</label><input id="lBudget" type="number" min="1" placeholder="required"></div>
+      <div class="field" id="lBudgetField"><label for="lBudget">Spending limit: most model calls allowed</label><input id="lBudget" type="number" min="1" placeholder="required"></div>
       <div class="runbtns">
         <button id="lRun" class="btn primary" type="submit">Run</button>
         <button id="lStop" class="btn danger" type="button" hidden>Stop</button>
@@ -128,51 +199,54 @@
     </form>
     <div id="lProgress" class="note" role="status"></div>
     <div id="lError" class="alert" role="alert" hidden></div>
-    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="lRunPick">Run</label><select id="lRunPick"></select></div></div>
+    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="lRunPick">Earlier run</label><select id="lRunPick"></select></div></div>
     <div id="lessonResults"></div>
   </div>
 
-  <div id="sub-isolation" class="subpane" hidden>
+  <div id="pane-isolation" class="subpane" hidden>
     <h2>Does what an agent receives change the traits it expresses?</h2>
-    <p class="lede">Four agents start identical and differ only in input: reading only, talking only, both, or nothing. At fixed steps each answers the same five questions and takes the same two self-prediction tests. The tests run on a copy of its memory, so they never change the agent being assessed. The prediction and protocol are written down before the first model call.</p>
+    <p class="lede">Four agents start the same and differ only in what they receive. The self-checks run on a copy of each agent's memory, so they never change the agent being assessed. The prediction and plan are written down before the first model call.</p>
+    <div id="how-isolation"></div>
     <form id="isoForm" class="runform" autocomplete="off">
-      <fieldset class="conds"><legend>Conditions</legend>
-        <label class="check"><input type="checkbox" name="ic" value="isolated" checked> isolated: reads only</label>
-        <label class="check"><input type="checkbox" name="ic" value="social" checked> social: converses only</label>
-        <label class="check"><input type="checkbox" name="ic" value="mixed" checked> mixed: both</label>
-        <label class="check"><input type="checkbox" name="ic" value="baseline" checked> baseline: nothing</label>
+      <fieldset class="conds"><legend title="Technical name: conditions">What does each agent receive?</legend>
+        <label class="check"><input type="checkbox" name="ic" value="isolated" checked> Reading only (isolated)</label>
+        <label class="check"><input type="checkbox" name="ic" value="social" checked> Conversation only (social)</label>
+        <label class="check"><input type="checkbox" name="ic" value="mixed" checked> Reading and conversation (mixed)</label>
+        <label class="check"><input type="checkbox" name="ic" value="baseline" checked> Nothing: the comparison agent (baseline)</label>
       </fieldset>
-      <div class="field"><label for="iSteps">Steps</label><input id="iSteps" type="number" value="6" min="1" max="20"></div>
-      <div class="field"><label for="iEvery">Check every</label><input id="iEvery" type="number" value="3" min="1" max="10"></div>
-      <label class="check"><input type="checkbox" id="iMemory" checked> Give agents their stored memory at checkpoints</label>
-      <div class="field"><label for="iBudget">Call budget</label><input id="iBudget" type="number" min="1"></div>
+      <div class="field"><label for="iSteps" title="Technical name: steps. One step is one reading or one conversation turn.">Rounds of input</label><input id="iSteps" type="number" value="6" min="1" max="20"></div>
+      <div class="field"><label for="iEvery" title="Technical name: checkpoint interval.">Self-check after every</label><input id="iEvery" type="number" value="3" min="1" max="10"></div>
+      <label class="check"><input type="checkbox" id="iMemory" checked> Give agents their stored memory during self-checks</label>
+      <div class="field"><label for="iBudget">Spending limit: most model calls allowed</label><input id="iBudget" type="number" min="1"></div>
       <div class="runbtns"><button id="iRun" class="btn primary" type="submit">Run (live model)</button><button id="iStop" class="btn danger" type="button" hidden>Stop</button></div>
       <p id="iEstimate" class="note full"></p>
     </form>
     <div id="iProgress" class="note" role="status"></div>
     <div id="iError" class="alert" role="alert" hidden></div>
-    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="iRunPick">Run</label><select id="iRunPick"></select></div></div>
+    <div class="results-head"><h3>Results</h3><div class="field inline"><label for="iRunPick">Earlier run</label><select id="iRunPick"></select></div></div>
     <div id="isoResults"></div>
   </div>
 
-  <div id="sub-compare" class="subpane" hidden>
+  <div id="pane-compare" class="subpane" hidden>
     <h2>Do agents that read different things end up different?</h2>
-    <p class="lede">Agent A and Agent B side by side, plus an empty-memory copy that answers the same five questions. Traits that also appear in the copy likely come from the base model, not from anything read.</p>
+    <p class="lede">Agent A and Agent B side by side, plus a comparison agent with no memory that answers the same five questions. Traits that also appear in the comparison agent likely come from the base model, not from anything read.</p>
+    <div id="how-compare"></div>
     <div id="cmpControls" class="controls"></div>
     <div id="cmpGrid" class="cmpgrid"></div>
     <div id="cmpAnswers"></div>
     <p class="note">Matching uses trait names with loose word overlap, so near-synonyms can be missed. One run is an anecdote.</p>
   </div>
 
-  <div id="sub-rules" class="subpane" hidden>
+<div id="pane-rules" class="subpane" hidden>
     <h2>Two agents and a hidden rule</h2>
+    <div id="how-rules"></div>
     <p class="lede">The original experiment: two agents test a hidden number rule, talk, reflect, and are scored by code against the true rule. Scripted mock agents need no key, and their improvement is built in, so mock results test the plumbing only.</p>
     <div id="expControls">
       <div class="controls" role="group" aria-label="Run controls">
-        <div class="field"><label for="mode">Agents</label><select id="mode"><option value="mock">Scripted mock (no API key)</option><option value="live">Live model</option></select></div>
-        <div class="field"><label for="cond">Condition</label><select id="cond"></select></div>
-        <div class="field"><label for="seed">Seed</label><input id="seed" type="number" value="1" min="1"></div>
-        <div class="field"><label for="rounds">Rounds</label><input id="rounds" type="number" value="4" min="1" max="8"></div>
+        <div class="field"><label for="mode">Who plays</label><select id="mode"><option value="mock">Scripted mock (no API key)</option><option value="live">Live model</option></select></div>
+        <div class="field"><label for="cond" title="Technical name: condition">What changes in this test?</label><select id="cond"></select></div>
+        <div class="field"><label for="seed" title="Technical name: seed. The same number gives the same hidden rule and the same scripted choices, so a run can be repeated exactly.">Repeatable setup (seed)</label><input id="seed" type="number" value="1" min="1"></div>
+        <div class="field"><label for="rounds">Rounds of play</label><input id="rounds" type="number" value="4" min="1" max="8"></div>
         <button id="run" class="btn primary">Run</button>
         <button id="step" class="btn">Step one round</button>
         <button id="reset" class="btn">Reset</button>
@@ -196,19 +270,23 @@
       <section class="rpanel wide"><h3>Reflection and checks</h3><div id="reflBody" class="rscroll"></div></section>
     </div>
   </div>
-</section>
 
-<!-- ===================== RESEARCH ===================== -->
-<section id="researchView" class="page" hidden aria-label="Research">
-  <div class="subnav tablist" role="tablist" aria-label="Research">
-    <button role="tab" aria-selected="true" data-rsub="findings">Findings</button>
-    <button role="tab" aria-selected="false" data-rsub="methods">Methods and sources</button>
-    <button role="tab" aria-selected="false" data-rsub="limits">Limitations</button>
-    <button role="tab" aria-selected="false" data-rsub="score">Scorecard</button>
+  <div id="pane-checks" class="subpane" hidden>
+    <h2>Can an agent predict its own answers?</h2>
+    <p class="lede">A check on one agent, using what it has stored. An unreadable answer counts as invalid, never as wrong.</p>
+    <div id="how-checks"></div>
+    <div class="runform" role="group" aria-label="Self-check">
+      <div class="field"><label for="cAgent">Agent to check</label><select id="cAgent"><option value="A">Agent A (empiricist)</option><option value="B">Agent B (analogist)</option></select></div>
+      <div class="field grow"><label for="cStmt">Statement to test</label><input id="cStmt" type="text" placeholder="Leave blank to use one from the bank"></div>
+      <div class="runbtns"><button id="cRun" class="btn primary">Run a prediction test</button><button id="cAudit" class="btn">Audit recent turns</button></div>
+      <p id="cStatus" class="note full" role="status"></p>
+    </div>
+    <div id="cResults"></div>
   </div>
-  <div id="rsub-findings" class="subpane">
+
+  <div id="pane-findings" class="subpane" hidden>
     <h2>Findings</h2>
-    <p class="lede">Hypotheses are written down with a prediction before anything is tested, and a locked prediction cannot be edited. Labels are descriptive pilot labels, not verdicts: with this little data, nothing here is a significance test.</p>
+    <p class="lede">A finding is a written prediction. It is locked before anything is tested and cannot be edited. Labels describe the pilot data only: with this little data, nothing here is a significance test.</p>
     <div class="controls">
       <button id="fGenerate" class="btn primary" title="The model reads aggregated stats and proposes up to 3 testable hypotheses">Generate hypotheses</button>
       <button id="fExport" class="btn">Download data (CSV)</button>
@@ -218,9 +296,9 @@
     <div id="fList"></div>
     <details><summary>Aggregated statistics the hypothesis generator reads</summary><div id="fStats"></div></details>
   </div>
-  <div id="rsub-methods" class="subpane" hidden><div id="methodsBody" class="doc"></div></div>
-  <div id="rsub-limits" class="subpane" hidden><div id="limitsBody" class="doc"></div></div>
-  <div id="rsub-score" class="subpane" hidden>
+  <div id="pane-methods" class="subpane" hidden><div id="methodsBody" class="doc"></div></div>
+  <div id="pane-limits" class="subpane" hidden><div id="limitsBody" class="doc"></div></div>
+  <div id="pane-score" class="subpane" hidden>
     <h2>Architectural indicators</h2>
     <p class="lede">Scientific theories of consciousness name properties a conscious system might have. This lists them and says which ones Stebula implements, in what form, and what is missing. It is not a score and it is not evidence about experience.</p>
     <div id="scoreSummary"></div>

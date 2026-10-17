@@ -12,13 +12,11 @@ This tests a narrow, functional slice of the guiding hypothesis ("consciousness 
 
 The flagship experiment asks the smallest version of it: **does a stored lesson change the agent's next decision on a new problem?** Matched hidden-rule tasks, a relevant lesson versus no lesson versus a length-matched irrelevant lesson, the prediction recorded before the outcome, and scoring against ground truth that never appears in a prompt.
 
-## The three views
+## The three destinations
 
-- **Observe**: the conversation (about two thirds of the screen) and one contextual inspector with tabs Process, Changes, Memory, Checks and Raw. Selecting a message shows that turn's recorded state. After each turn, a short line says what changed. A failed or degraded stage is shown next to the conversation with a recovery action.
-- **Experiments**: Stored lesson (the flagship), Isolation, Compare agents, and the original two-agent hidden-rule runs.
-- **Research**: Findings, Methods and sources, Limitations, and the indicator Scorecard.
-
-Every visual is drawn from recorded state. Anything decorative is labeled.
+- **Agent**: the main screen. A strip at the top says which agent you are talking to, what it is doing now, what it is responding to, and what happened most recently. Below it are the conversation, a process map of the selected turn (what it noticed, relevant memories, current priorities, conversation signals, proposals it considered, what was selected, what it said, what changed afterward) and one inspector. Select a message, a stage, a line between stages, a proposal or a memory and the inspector explains it in plain words, then shows what was recorded, where it came from, whether it was supplied to a later stage, and the raw record. "Step through" replays the recorded stages of a turn one at a time. A failed or missing stage is shown as failed or missing, never as a result.
+- **History**: every recorded moment for the agent (turns, readings, reflections, checks), newest first. Pick one to see the conversation, its process map and the state recorded then. What was not recorded, such as earlier versions of the note about the person, is listed as a gap, never filled from the present.
+- **Lab**: the stored lesson experiment, what agents receive, compare agents, hidden-rule runs, self-checks, findings, methods, limits and indicators. Each test says what happens, which agent answers, who or what evaluates it, what changes between comparisons, and what the result tells us.
 
 ## Talk
 
@@ -61,7 +59,7 @@ node scripts/make-example.js      # rebuilds examples/observe-example.json (scri
 npm start
 ```
 
-Then, with the server running, either open Experiments, Stored lesson, and press Run with the scripted double selected, or from a second terminal:
+Then, with the server running, either open Lab, Stored lesson, and press Run with the practice (scripted double) option selected, or from a second terminal:
 
 ```powershell
 curl.exe -N -X POST http://localhost:5173/api/lesson -H "content-type: application/json" -d '{\"mode\":\"scripted\",\"tasks\":8}'

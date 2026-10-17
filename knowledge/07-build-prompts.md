@@ -100,3 +100,18 @@ You are the lead AI engineer and product designer for Stebula. Execute: investig
 
 10. Verify and finish. Focused regression tests for each demonstrated failure; run the suite, targeted tests and HTTP checks; exercise the real UI in a browser (desktop and narrow, keyboard, empty, loading, success, degraded and failed states, memory controls, replay, cancellation, experiment comparison) and fix layout problems, or say browser verification was unavailable. Add GitHub Actions. Update README, architecture, limitations, decision log, roadmap and generated docs to match behavior. Explain the project in one paragraph and document one reproducible demonstration. Report what changed, which audit findings were confirmed, already fixed or not reproducible, tests and browser checks actually performed, remaining limits, branch and commit ids, and exact Windows steps. Do not claim deployment, live-model verification or CI success unless observed.
 ```
+
+## Prompt 5: Agent-centered redesign (status: done)
+
+Goal: make the agent the center of the experience. Keep the depth of the process and make the visible experience simple, labeled and understandable.
+
+1. Read the repository instructions and trace the real process (input, memory context, signals, five proposals, selection, reply, saved changes) before changing the interface.
+2. Three destinations: Agent (talk and observe), History (revisit recorded moments), Lab (tasks, experiments, findings, in ordinary language).
+3. Agent screen in three layers: a current-state strip (who, doing what, responding to what, latest), a process map of the selected turn, and one contextual inspector.
+4. Honest motives, signals and thoughts: name sources, never turn a score into a feeling, never claim influence from "supplied".
+5. A complete interaction can be followed and stepped through at recorded-stage granularity. Selecting an older message shows its own records.
+6. Failures stay visible: nothing recorded, no relevant result, still processing, stage failed, stage completed.
+7. Plain names for Lab controls, with the technical name in the details and five fixed questions per test.
+8. Calm visual system, keyboard and reduced-motion support, desktop and mobile.
+9. Tests for the event mapping, history and missing or failed stages (`scripts/test-process.js`) and browser checks (`npm run ui-check`).
+

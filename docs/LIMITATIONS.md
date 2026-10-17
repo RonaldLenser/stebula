@@ -42,3 +42,11 @@ Read this before citing any result from this repo.
 38. **Record health is per process.** The recorder reports failed appends since the server started. A failure in an earlier run is not remembered, and the record is not a tamper-proof log.
 39. **Cancellation stops the next call, not the current one.** An in-flight request is aborted at the network level, but the provider may still bill tokens already generated.
 40. **Call estimates are before retries.** Retries, folding and summary calls add to the real count. Live runs stop at their budget and say so.
+41. **The process map is a hand-written reading of the data flow.** `src/talk/process.js` states what each stage was supplied, from the prompts in `src/talk/prompts.js`. If a prompt changes, that file and its tests must change with it. The map shows software state around the model, not what happens inside it.
+42. **"Supplied" is not "influenced".** The record shows which memories and proposals the model received. It cannot show which of them shaped the wording, and the interface does not claim it.
+43. **Conversation signals are a rule, not an emotion.** Surprise, conflict and curiosity are computed from keyword patterns and message novelty. They are not felt, and the keyword patterns miss many real challenges.
+44. **Priorities are partly configured.** There is no goal store. The map shows the configured stance, the agent's own written open questions and last turn's selection. Motives appear only as evaluation evidence the agent never sees.
+45. **History has gaps by design.** The note about the person and the running conversation summary keep only their latest text, so earlier versions cannot be shown. Reading memories later folded into a summary are not shown separately. Turns saved before event logging have no stage times.
+46. **Memory off removes stored memory, not the recent conversation.** The last turns of the conversation window are still given to the model, so an off turn is not a turn with no context.
+47. **Replay is at stage granularity.** Stepping through a turn reveals recorded stage groups. It is a replay of saved records, not a re-run and not live activity.
+

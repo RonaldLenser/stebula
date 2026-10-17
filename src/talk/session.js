@@ -160,7 +160,10 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}, record 
     const mem = await store.load(agent);
     const now = new Date().toISOString();
     const userText = str(text, 4000);
-    emit('heard', { turn: mem.turns + 1, text: userText });
+    // Every stage is stamped as it is reported, and the list is stored with the turn so a replay can show real timestamps.
+    const events = [], emitRaw = emit;
+    emit = (stage, data) => { events.push({ seq: events.length, stage, at: new Date().toISOString() }); emitRaw(stage, data); };
+    emit('heard', { turn: mem.turns + 1, text: userText, agent, turnId: `${agent}-${mem.turns + 1}` });
     record('user_input', { turn: mem.turns + 1, text: userText, mode: opts.input === 'spoken' ? 'spoken' : 'typed' });
 
     // 1. Affect update (code)
@@ -230,7 +233,7 @@ export async function talkTurn(store, llm, agent, text, emit = () => {}, record 
     if (ing?.event) { emit('personality', { entries: ing.entries, rejected: ing.rejected, items: null }); record('personality_change', { origin: 'talk', turn: mem.turns, event: ing.event.id, source: ing.event.source, rows: changeRows(mem.personality, ing.entries), rejected: ing.rejected }); }
     if (!isDegraded) for (const c of turn.claims) if (c.kind === 'experiential' || c.kind === 'metaphor') mem.selfReports.push({ turn: mem.turns, at: now, ...c });
 
-    const monologue = { affectBefore, affect, causes, candidates, thinkRaw: think.raw || '', thinkStatus: think.status, stages, context: { think: contextRecord(thinkCtx), speak: contextRecord(speakCtx) } };
+    const monologue = { affectBefore, affect, causes, candidates, thinkRaw: think.raw || '', thinkStatus: think.status, stages, turnId: `${agent}-${mem.turns}`, events, context: { think: contextRecord(thinkCtx), speak: contextRecord(speakCtx) } };
     const userMsg = { role: 'user', text: userText, at: now, turn: mem.turns };
     const agentMsg = { role: 'assistant', text: turn.reply, at: now, turn: mem.turns, claims: turn.claims, changeNote: turn.changeNote, raw: speak.raw, flags, monologue, status: turn.status, degraded: isDegraded, askedQuestion: /\?\s*$/.test(turn.reply.trim()) };
     mem.active.push(userMsg, agentMsg); mem.archive.push(userMsg, agentMsg);

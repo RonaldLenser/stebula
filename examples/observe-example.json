@@ -1,18 +1,18 @@
 {
  "scripted": true,
  "label": "Scripted example. Produced by a deterministic test stub, not a model.",
- "generatedAt": "2026-10-16T22:00:04.694Z",
+ "generatedAt": "2026-10-17T01:26:48.554Z",
  "revision": {
-  "commit": "c4aaf06857e2f87265d8dbbb1f7e66564d3a9259",
-  "dirty": false,
-  "branch": "improve/audit-docs"
+  "commit": "a43a7760805ae9bacf62b739104ce087dfb6f6ed",
+  "dirty": true,
+  "branch": "improve/audit-2026-10"
  },
  "agent": "A",
  "mem": {
   "format": "threshold-talk/2",
   "agent": "A",
-  "createdAt": "2026-10-16T22:00:04.664Z",
-  "lastActivity": "2026-10-16T22:00:04.682Z",
+  "createdAt": "2026-10-17T01:26:48.524Z",
+  "lastActivity": "2026-10-17T01:26:48.542Z",
   "lastReflectionAt": null,
   "version": 1,
   "turns": 3,
@@ -40,13 +40,13 @@
    {
     "role": "user",
     "text": "What do you remember about the lighthouse keeper?",
-    "at": "2026-10-16T22:00:04.673Z",
+    "at": "2026-10-17T01:26:48.534Z",
     "turn": 1
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.673Z",
+    "at": "2026-10-17T01:26:48.534Z",
     "turn": 1,
     "claims": [
      {
@@ -207,6 +207,44 @@
        }
       }
      ],
+     "turnId": "A-1",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 5,
+       "stage": "selfmodel",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 6,
+       "stage": "personality",
+       "at": "2026-10-17T01:26:48.537Z"
+      }
+     ],
      "context": {
       "think": {
        "mode": "on",
@@ -257,13 +295,13 @@
    {
     "role": "user",
     "text": "Hello again.",
-    "at": "2026-10-16T22:00:04.679Z",
+    "at": "2026-10-17T01:26:48.539Z",
     "turn": 2
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.679Z",
+    "at": "2026-10-17T01:26:48.539Z",
     "turn": 2,
     "claims": [
      {
@@ -423,6 +461,39 @@
        }
       }
      ],
+     "turnId": "A-2",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 5,
+       "stage": "personality",
+       "at": "2026-10-17T01:26:48.540Z"
+      }
+     ],
      "context": {
       "think": {
        "mode": "on",
@@ -457,13 +528,13 @@
    {
     "role": "user",
     "text": "Hello once more.",
-    "at": "2026-10-16T22:00:04.682Z",
+    "at": "2026-10-17T01:26:48.542Z",
     "turn": 3
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.682Z",
+    "at": "2026-10-17T01:26:48.542Z",
     "turn": 3,
     "claims": [
      {
@@ -580,6 +651,34 @@
         "lessons": 0,
         "traitIds": []
        }
+      }
+     ],
+     "turnId": "A-3",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.542Z"
       }
      ],
      "context": {
@@ -618,13 +717,13 @@
    {
     "role": "user",
     "text": "What do you remember about the lighthouse keeper?",
-    "at": "2026-10-16T22:00:04.673Z",
+    "at": "2026-10-17T01:26:48.534Z",
     "turn": 1
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.673Z",
+    "at": "2026-10-17T01:26:48.534Z",
     "turn": 1,
     "claims": [
      {
@@ -785,6 +884,44 @@
        }
       }
      ],
+     "turnId": "A-1",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 5,
+       "stage": "selfmodel",
+       "at": "2026-10-17T01:26:48.534Z"
+      },
+      {
+       "seq": 6,
+       "stage": "personality",
+       "at": "2026-10-17T01:26:48.537Z"
+      }
+     ],
      "context": {
       "think": {
        "mode": "on",
@@ -835,13 +972,13 @@
    {
     "role": "user",
     "text": "Hello again.",
-    "at": "2026-10-16T22:00:04.679Z",
+    "at": "2026-10-17T01:26:48.539Z",
     "turn": 2
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.679Z",
+    "at": "2026-10-17T01:26:48.539Z",
     "turn": 2,
     "claims": [
      {
@@ -1001,6 +1138,39 @@
        }
       }
      ],
+     "turnId": "A-2",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.539Z"
+      },
+      {
+       "seq": 5,
+       "stage": "personality",
+       "at": "2026-10-17T01:26:48.540Z"
+      }
+     ],
      "context": {
       "think": {
        "mode": "on",
@@ -1035,13 +1205,13 @@
    {
     "role": "user",
     "text": "Hello once more.",
-    "at": "2026-10-16T22:00:04.682Z",
+    "at": "2026-10-17T01:26:48.542Z",
     "turn": 3
    },
    {
     "role": "assistant",
     "text": "I remember the lighthouse keeper. I try to ask before I assume, because sure entries were his weakest.",
-    "at": "2026-10-16T22:00:04.682Z",
+    "at": "2026-10-17T01:26:48.542Z",
     "turn": 3,
     "claims": [
      {
@@ -1160,6 +1330,34 @@
        }
       }
      ],
+     "turnId": "A-3",
+     "events": [
+      {
+       "seq": 0,
+       "stage": "heard",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 1,
+       "stage": "affect",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 2,
+       "stage": "thoughts",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 3,
+       "stage": "workspace",
+       "at": "2026-10-17T01:26:48.542Z"
+      },
+      {
+       "seq": 4,
+       "stage": "speaking",
+       "at": "2026-10-17T01:26:48.542Z"
+      }
+     ],
      "context": {
       "think": {
        "mode": "on",
@@ -1196,8 +1394,8 @@
    "events": [
     {
      "id": "e1",
-     "at": "2026-10-16T22:00:04.677Z",
-     "source": "Conversation 2026-10-16",
+     "at": "2026-10-17T01:26:48.537Z",
+     "source": "Conversation 2026-10-17",
      "sourceType": "talk",
      "ref": {
       "turn": 1
@@ -1206,8 +1404,8 @@
     },
     {
      "id": "e2",
-     "at": "2026-10-16T22:00:04.679Z",
-     "source": "Conversation 2026-10-16",
+     "at": "2026-10-17T01:26:48.540Z",
+     "source": "Conversation 2026-10-17",
      "sourceType": "talk",
      "ref": {
       "turn": 2
@@ -1224,8 +1422,8 @@
      "name": "asks before assuming",
      "direction": "supports",
      "quote": "ask before I assume",
-     "source": "Conversation 2026-10-16",
-     "at": "2026-10-16T22:00:04.677Z",
+     "source": "Conversation 2026-10-17",
+     "at": "2026-10-17T01:26:48.537Z",
      "quotePresent": true,
      "supportReview": "unreviewed"
     },
@@ -1237,8 +1435,8 @@
      "name": "asks before assuming",
      "direction": "supports",
      "quote": "ask before I assume",
-     "source": "Conversation 2026-10-16",
-     "at": "2026-10-16T22:00:04.679Z",
+     "source": "Conversation 2026-10-17",
+     "at": "2026-10-17T01:26:48.540Z",
      "quotePresent": true,
      "supportReview": "unreviewed"
     }
@@ -1256,7 +1454,7 @@
     "question": "How would I notice my own overconfidence?",
     "connects": [],
     "excerpt": "A lighthouse keeper logged the weather every hour for thirty years. The entries he trusted least were the ones he wrote when he was sure.",
-    "at": "2026-10-16T22:00:04.666Z",
+    "at": "2026-10-17T01:26:48.526Z",
     "parseError": false,
     "status": "ok",
     "degraded": [],
@@ -1274,7 +1472,7 @@
      "m1"
     ],
     "excerpt": "The village bridge was rebuilt twice after floods. The second time, a young engineer asked why the old bridge had failed before she drew anything.",
-    "at": "2026-10-16T22:00:04.670Z",
+    "at": "2026-10-17T01:26:48.531Z",
     "parseError": false,
     "status": "ok",
     "degraded": [],
@@ -1286,7 +1484,7 @@
   "revisions": [
    {
     "turn": 1,
-    "at": "2026-10-16T22:00:04.673Z",
+    "at": "2026-10-17T01:26:48.534Z",
     "before": {
      "beliefs": [],
      "uncertainties": [],
@@ -1348,7 +1546,7 @@
   "audits": [],
   "selfTests": [
    {
-    "at": "2026-10-16T22:00:04.684Z",
+    "at": "2026-10-17T01:26:48.545Z",
     "turn": 3,
     "statement": "My memory is a file I am shown each turn.",
     "assessment": false,
@@ -1394,7 +1592,7 @@
     "match": "yes"
    },
    {
-    "at": "2026-10-16T22:00:04.686Z",
+    "at": "2026-10-17T01:26:48.547Z",
     "turn": 3,
     "statement": "An honest I do not know beats a confident guess.",
     "assessment": false,

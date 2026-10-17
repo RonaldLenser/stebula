@@ -1,6 +1,6 @@
 // Experiments: research questions, treatment and control, running, and results. Aggregates and single trials
 // are both inspectable. Scripted runs are labelled as such everywhere, and no number is invented to fill a screen.
-import { $, $$, esc, fmt, isNum, pct, when, api, stream, tabKeys } from '/core.js';
+import { $, $$, esc, fmt, isNum, pct, when, api, stream } from '/core.js';
 import { LESSON_CONDITIONS, DEFAULT_LESSON_CONDITIONS, RELEVANT_LESSON, IRRELEVANT_LESSON, shuffledLesson, estimateLessonCalls } from '/src/research/lesson-text.js';
 import { loadCompare, setCompareApi } from '/growth.js';
 
@@ -8,18 +8,6 @@ const E = { cfg: null, lesson: { runs: [], run: null, trial: null, job: null }, 
 const ci = d => (d?.ci95 ? `[${fmt(d.ci95[0])}, ${fmt(d.ci95[1])}]` : '<span class="nodata">no interval (needs 2+ pairs)</span>');
 const delta = d => (d?.n ? `${d.mean > 0 ? '+' : ''}${fmt(d.mean)}` : '<span class="nodata">No data</span>');
 const err = (el, e) => { const i = e.info || {}; el.hidden = false; el.innerHTML = `<b>${i.stage ? `The ${esc(i.stage)} step failed.` : 'That did not work.'}</b> ${esc(e.message)}${i.recovery ? `<div class="why">${esc(i.recovery)}</div>` : ''}`; };
-
-// ---------- shared: sub navigation ----------
-function subnav(listSel, attr, panePrefix, onShow) {
-  const list = $(listSel); tabKeys(list);
-  const show = id => {
-    for (const b of $$('[role=tab]', list)) b.setAttribute('aria-selected', String(b.dataset[attr] === id));
-    for (const p of $$(`[id^="${panePrefix}"]`)) p.hidden = p.id !== `${panePrefix}${id}`;
-    onShow?.(id);
-  };
-  for (const b of $$('[role=tab]', list)) b.onclick = () => show(b.dataset[attr]);
-  return show;
-}
 
 // ---------- lesson experiment ----------
 const lessonConds = () => $$('input[name=lc]:checked').map(i => i.value);
@@ -153,13 +141,14 @@ async function runIso(e) {
 }
 
 // ---------- init ----------
-export async function initExperiments(cfg) {
+// Called by the Lab when one of the test panes is shown.
+export function onExperimentPane(id) {
+  if (id === 'lesson') { lessonDesign(); lessonEstimate(); lessonRuns(); }
+  if (id === 'isolation') { isoEstimate(); isoRuns(); }
+  if (id === 'compare') loadCompare(a => api(`/api/talk/${a}`)).catch(e => { $('#cmpGrid').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
+}
+export function initExperiments(cfg) {
   E.cfg = cfg;
-  const show = subnav('#experimentsView .subnav', 'sub', 'sub-', id => {
-    if (id === 'lesson') { lessonDesign(); lessonEstimate(); lessonRuns(); }
-    if (id === 'isolation') { isoEstimate(); isoRuns(); }
-    if (id === 'compare') loadCompare(a => api(`/api/talk/${a}`)).catch(e => { $('#cmpGrid').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
-  });
   setCompareApi((path, body) => api(`/api/talk/${path}`, body));
   $('#lessonForm').onsubmit = runLesson;
   for (const id of ['#lMode', '#lTasks']) $(id).onchange = lessonEstimate;
@@ -172,6 +161,4 @@ export async function initExperiments(cfg) {
   for (const el of $$('input[name=ic]')) el.onchange = isoEstimate;
   $('#iStop').onclick = () => E.iso.job?.abort();
   $('#iRunPick').onchange = async e => { if (!e.target.value) return; try { E.iso.run = await api(`/api/experiment/run?id=${encodeURIComponent(e.target.value)}`); } catch { E.iso.run = null; } renderIso(); };
-  return show;
 }
-export const experimentsActivated = show => show?.($$('#experimentsView .subnav [aria-selected=true]')[0]?.dataset.sub || 'lesson');
